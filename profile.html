@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User Profile - Menu Master</title>
+    <link rel="stylesheet" href="styles.css" />
+    <!-- Link to existing styles -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Font Awesome for icons -->
+    <link rel="preload" as="image" href="placeholder.webp" />
+    <!-- Assuming placeholder.webp is the optimized logo -->
+    <style>
+      /* Basic profile page styling */
+      .profile-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: #fff; /* Or inherit from styles.css */
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .profile-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #eee;
+        position: relative; /* For positioning edit controls */
+      }
+      .profile-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      .profile-section h2 {
+        margin-bottom: 0.5rem;
+        font-size: 1.2rem;
+        color: #333; /* Adjust as needed */
+      }
+      .profile-data,
+      .profile-edit-form {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 40px; /* Ensure consistent height */
+      }
+      .profile-data span,
+      .profile-data img {
+        flex-grow: 1; /* Allow display element to take space */
+        margin-right: 1rem; /* Space before edit button */
+      }
+      .profile-edit-form {
+        display: none; /* Hidden by default */
+        flex-wrap: wrap; /* Allow wrapping for smaller screens */
+      }
+      .profile-edit-form input[type='text'],
+      .profile-edit-form input[type='tel'],
+      .profile-edit-form input[type='file'] {
+        flex-grow: 1;
+        padding: 8px;
+        margin-right: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      .edit-controls button {
+        margin-left: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+        border: 1px solid transparent;
+      }
+      .save-btn {
+        background-color: var(--success-color, #28a745); /* Use theme color */
+        color: white;
+      }
+      .cancel-btn {
+        background-color: var(--secondary-color, #6c757d); /* Use theme color */
+        color: white;
+      }
+      .edit-btn {
+        background: none;
+        border: none;
+        color: var(--primary-color, #007bff); /* Use theme color if available */
+        cursor: pointer;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        padding: 5px; /* Add padding for easier clicking */
+      }
+      .edit-btn i {
+        margin-right: 5px;
+      }
+      .profile-logo {
+        max-width: 100px; /* Adjusted size */
+        max-height: 100px;
+        display: block;
+        margin-top: 0.5rem;
+        object-fit: contain; /* Ensure logo fits well */
+      }
+      /* Hide elements helper class */
+      .hidden {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <h1 class="restaurant-name">Menu Master</h1>
+      </div>
+      <!-- Add navigation or other header elements if needed -->
+    </header>
+
+    <main class="profile-container">
+      <h1>Restaurant Profile</h1>
+
+      <!-- Restaurant Name Section -->
+      <div class="profile-section" id="name-section">
+        <h2>Restaurant Name</h2>
+        <div class="profile-data" id="name-display-section">
+          <span id="restaurant-name-display">[Loading...]</span>
+          <button
+            class="edit-btn"
+            id="edit-name-btn"
+            aria-label="Edit Restaurant Name"
+          >
+            <i class="fas fa-pencil-alt"></i> Edit
+          </button>
+        </div>
+        <div class="profile-edit-form" id="name-edit-section">
+          <input
+            type="text"
+            id="restaurant-name-input"
+            placeholder="Enter restaurant name"
+          />
+          <div class="edit-controls">
+            <button class="save-btn" id="save-name-btn">Save</button>
+            <button class="cancel-btn" id="cancel-name-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phone Number Section -->
+      <div class="profile-section" id="phone-section">
+        <h2>Phone Number</h2>
+        <div class="profile-data" id="phone-display-section">
+          <span id="phone-number-display">[Loading...]</span>
+          <button
+            class="edit-btn"
+            id="edit-phone-btn"
+            aria-label="Edit Phone Number"
+          >
+            <i class="fas fa-pencil-alt"></i> Edit
+          </button>
+        </div>
+        <div class="profile-edit-form" id="phone-edit-section">
+          <input
+            type="tel"
+            id="phone-number-input"
+            placeholder="Enter phone number"
+          />
+          <div class="edit-controls">
+            <button class="save-btn" id="save-phone-btn">Save</button>
+            <button class="cancel-btn" id="cancel-phone-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Logo Section -->
+      <div class="profile-section" id="logo-section">
+        <h2>Restaurant Logo</h2>
+        <div class="profile-data" id="logo-display-section">
+          <picture>
+            <source srcset="placeholder.avif" type="image/avif" />
+            <source srcset="placeholder.webp" type="image/webp" />
+            <img
+              src="placeholder.png"
+              alt="Restaurant Logo"
+              id="logo-display"
+              class="profile-logo"
+              loading="eager"
+              onerror="this.onerror=null;this.src='placeholder.png';"
+            />
+          </picture>
+          <button
+            class="edit-btn"
+            id="edit-logo-btn"
+            aria-label="Edit Restaurant Logo"
+          >
+            <i class="fas fa-pencil-alt"></i> Edit
+          </button>
+        </div>
+        <div class="profile-edit-form" id="logo-edit-section">
+          <input type="file" id="logo-input" accept="image/*" />
+          <div class="edit-controls">
+            <button class="save-btn" id="save-logo-btn">Save</button>
+            <button class="cancel-btn" id="cancel-logo-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Load Supabase library FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load AWS SDK for S3 (R2 compatibility) -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1175.0.min.js"></script>
+    <!-- Load profile script AFTER Supabase and AWS SDK are loaded -->
+    <script src="profile_script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- Replaced deprecated tag -->
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Restaurant Menu</title>
+    <link rel="preload" as="image" href="placeholder-logo.webp" />
+    <!-- Assuming placeholder-logo.webp is the optimized logo -->
+    <style>
+      /* Target specifically for phone screens */
+      @media (max-width: 480px) {
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Poppins', sans-serif;
+        background-color: #808080;
+        overflow-x: hidden; /* Prevent horizontal page scroll */
+      }
+
+      .header {
+        background-color: #666666;
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .logo {
+        width: 60px;
+        height: auto;
+      }
+      .logo-container picture {
+        display: flex; /* To align the image within the flex container */
+        align-items: center;
+        justify-content: center;
+      }
+
+      .restaurant-name {
+        font-size: 1.5rem;
+        color: #ffffff;
+      }
+
+      .restaurant-info {
+        font-size: 0.8rem;
+        color: #cccccc;
+        margin-top: 0.2rem;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+        overflow-x: auto; /* Allow horizontal scrolling for buttons */
+        padding-bottom: 0.5rem; /* Space for scrollbar */
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        scrollbar-width: thin; /* For Firefox */
+      }
+
+      .action-buttons::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .action-buttons::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      .action-buttons::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+
+      .action-btn {
+        padding: 0.5rem 1.5rem;
+        border: none;
+        border-radius: 20px;
+        background-color: #4caf50;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        /* iOS Safari touch improvements */
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: manipulation;
+      }
+
+      .action-btn:hover {
+        background-color: #45a049;
+        transform: translateY(-2px);
+      }
+
+      .action-btn:active {
+        transform: translateY(0);
+      }
+
+      #add-item-btn {
+        background-color: #2196f3;
+      }
+
+      #add-item-btn:hover {
+        background-color: #1e88e5;
+      }
+
+      #edit-items-btn {
+        background-color: #ff9800;
+      }
+
+      #edit-items-btn:hover {
+        background-color: #fb8c00;
+      }
+
+      #add-category-btn {
+        background-color: #9c27b0;
+      }
+
+      #add-category-btn:hover {
+        background-color: #8e24aa;
+      }
+
+      .delete-category-icon {
+        color: #dc3545; /* Red color for delete */
+        cursor: pointer;
+        font-size: 1.2em;
+        /* Removed margin-left as it's now inside a flex container */
+        transition: color 0.2s ease;
+      }
+
+      .delete-category-icon:hover {
+        color: #c82333; /* Darker red on hover */
+      }
+
+      .category-nav {
+        background-color: #666666;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .category-scroll {
+        display: flex;
+        gap: 1rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .category-scroll::-webkit-scrollbar {
+        height: 4px;
+      }
+
+      .category-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      .category-scroll::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+      }
+
+      .category-btn {
+        padding: 0.5rem 1.5rem;
+        border: none;
+        border-radius: 20px;
+        background-color: #f0f0f0;
+        color: #333;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all 0.3s ease;
+        display: flex; /* Use flexbox for internal alignment */
+        align-items: center; /* Vertically center items */
+        justify-content: center; /* Horizontally center items */
+        gap: 5px; /* Space between text and icon */
+      }
+
+      .category-btn.active {
+        background-color: #333;
+        color: #ffffff;
+      }
+
+      .menu-container {
+        padding: 1rem 2rem;
+      }
+
+      .menu-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        padding: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .menu-item {
+        background-color: #666666;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      .menu-item:hover {
+        transform: translateY(-5px);
+      }
+
+      .item-image {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        background: #f0f0f0
+          url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23e5e5e5"/></svg>')
+          center/cover;
+      }
+
+      .item-content {
+        padding: 1rem 0 1rem 0; /* Removed left/right padding */
+      }
+
+      .item-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end; /* Align children to the right */
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0 0.5rem 0;
+        border-radius: 4px;
+        position: relative;
+      }
+
+      @media (max-width: 768px) {
+      }
+
+      .item-price {
+        font-weight: 600;
+        color: #ffffff; /* Keep color white */
+        white-space: nowrap;
+        padding-right: 5px; /* Match name's right padding */
+        margin-top: 0; /* Ensure it's directly below */
+        margin-bottom: 0; /* Ensure no extra margin at bottom */
+      }
+
+      .item-description {
+        max-height: 0;
+        overflow: hidden;
+        transition:
+          max-height 0.3s ease,
+          margin-top 0.3s ease;
+        color: #ffffff;
+        margin-top: 0;
+      }
+
+      .item-description.visible {
+        max-height: 200px;
+        margin-top: 1rem;
+      }
+
+      .menu-item.editing {
+        background-color: #f0f0f0;
+        border: 1px solid #ccc;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .menu-item.editing .item-content {
+        overflow-x: hidden; /* Prevent content area from causing horizontal page scroll */
+        padding: 15px;
+      }
+
+      .menu-item.editing .item-image-edit-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .menu-item.editing .current-image-preview {
+        max-width: 100px;
+        max-height: 100px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+      }
+
+      .menu-item.editing .edit-image-input {
+        font-size: 0.9em;
+        margin-top: 5px;
+      }
+
+      .menu-item.editing input[type='text'],
+      .menu-item.editing input[type='number'],
+      .menu-item.editing select,
+      .menu-item.editing textarea {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.95em;
+        box-sizing: border-box;
+      }
+
+      .menu-item.editing textarea {
+        min-height: 60px;
+        resize: vertical;
+      }
+
+      .menu-item.editing .item-header {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .menu-item.editing .item-header input {
+        margin-bottom: 0;
+      }
+
+      .menu-item.editing .edit-actions {
+        display: flex;
+        justify-content: flex-end; /* Keep for positioning */
+        margin-top: 10px; /* Keep for positioning */
+        /* Moved scrolling properties to wrapper */
+        .menu-item.editing .edit-actions .edit-actions-button-wrapper {
+          display: flex; /* Make buttons flex items */
+          gap: 10px; /* Space between buttons */
+          overflow-x: auto; /* Enable horizontal scroll */
+          white-space: nowrap; /* Prevent button wrapping */
+          padding-bottom: 5px; /* Space for scrollbar */
+          -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
+        }
+
+        .menu-item.editing .edit-actions button {
+          padding: 6px 12px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9em;
+          flex-shrink: 0; /* Prevent buttons from shrinking */
+        }
+
+        .menu-item.editing .save-item-btn {
+          background-color: #28a745;
+          color: white;
+        }
+        .menu-item.editing .save-item-btn:disabled {
+          background-color: #cccccc;
+          cursor: not-allowed;
+        }
+
+        .menu-item.editing .cancel-edit-btn {
+          background-color: #6c757d;
+          color: white;
+        }
+
+        .menu-item.editing .item-description,
+        .menu-item.editing .expand-indicator {
+          display: none;
+        }
+
+        .menu-item.editing .item-header h3,
+        .menu-item.editing .item-header span {
+          display: none;
+        }
+
+        .menu-item.editing > .item-image {
+          display: none;
+        }
+
+        .expand-indicator {
+          display: flex;
+          justify-content: center;
+          padding: 0.5rem;
+          color: #666;
+          transition: transform 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+          .menu-grid {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            padding: 0.5rem;
+          }
+
+          .menu-item {
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          }
+
+          .header {
+            padding: 0.75rem;
+          }
+
+          .logo {
+            width: 40px;
+          }
+
+          .restaurant-name {
+            font-size: 1.2rem;
+          }
+
+          .menu-container {
+            padding: 0.5rem;
+          }
+
+          .item-image {
+            height: 100px;
+          }
+
+          .item-content {
+            padding: 0.5rem;
+          }
+
+          .item-header {
+            padding: 0.5rem;
+            align-items: flex-start;
+          }
+
+          .item-price {
+            font-size: 0.8rem;
+            position: static;
+            margin-top: 0;
+          }
+
+          .item-description {
+            font-size: 0.75rem;
+          }
+
+          .expand-indicator {
+            padding: 0.25rem;
+          }
+        }
+
+        .modal-content button[type='submit'] {
+          background-color: #4caf50;
+          color: white;
+          padding: 12px 20px;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-size: 1rem;
+          font-weight: 500;
+          width: 100%;
+          transition: background-color 0.3s ease;
+          /* iOS Safari touch improvements */
+          -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
+          touch-action: manipulation;
+        }
+
+        .modal-content button[type='submit']:hover {
+          background-color: #45a049;
+        }
+
+        .close-btn {
+          position: absolute;
+          top: 10px;
+          right: 15px;
+          color: #aaa;
+          font-size: 28px;
+          font-weight: bold;
+          background: none;
+          border: none;
+          cursor: pointer;
+          line-height: 1;
+        }
+
+        .close-btn:hover,
+        .close-btn:focus {
+          color: #ffffff;
+          text-decoration: none;
+        }
+      }
+
+      /* Loading Indicator Styles */
+      .loading-indicator {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 15px;
+        padding: 10px;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        color: #333;
+        font-weight: 500;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+
+      .loading-indicator.visible {
+        display: flex;
+      }
+
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        border-left-color: #4caf50;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <img src="" alt="Restaurant Logo" class="logo" id="restaurant-logo" />
+        <h1 class="restaurant-name" id="restaurant-name"></h1>
+      </div>
+      <div class="restaurant-info">
+        <span id="restaurant-phone-number"></span> |
+        <span id="restaurant-area"></span>
+      </div>
+      <div class="action-buttons">
+        <button class="action-btn" id="add-item-btn">Add Item</button>
+        <button class="action-btn" id="edit-items-btn">Edit Items</button>
+        <button class="action-btn" id="add-category-btn">Add Category</button>
+        <button class="action-btn" id="share-menu-btn">Share Menu</button>
+        <button class="action-btn" id="edit-info-btn">Edit Info</button>
+      </div>
+    </header>
+
+    <nav class="category-nav">
+      <div class="category-scroll">
+        <button class="category-btn active">All</button>
+        <!-- Categories populated by JS -->
+      </div>
+    </nav>
+
+    <main class="menu-container">
+      <div class="menu-grid" role="list">
+        <!-- Menu items populated by JS -->
+      </div>
+    </main>
+
+    <!-- Load Supabase library FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load your script AFTER Supabase is loaded -->
+    <script src="script.js"></script>
+    <!-- Removed type="module" -->
+    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
+
+    <!-- Add Category Form Container -->
+    <!-- Add Category Modal -->
+    <div id="add-category-modal" class="modal-overlay">
+      <div id="add-category-container" class="modal-content">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        <h2>Add New Category</h2>
+        <form id="add-category-form">
+          <label for="category-name">Category Name:</label><br />
+          <input
+            type="text"
+            id="category-name"
+            name="category-name"
+            autocomplete="off"
+            required
+          /><br />
+          <button type="submit">Add Category</button>
+          <div id="add-category-loading-indicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <span id="add-category-loading-text">Adding category...</span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Add Item Form Container -->
+    <!-- Add Item Modal -->
+    <div id="add-item-modal" class="modal-overlay">
+      <div id="add-item-container" class="modal-content">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        <h2>Add New Item</h2>
+        <form id="add-item-form">
+          <label for="name">Name:</label><br />
+          <input
+            type="text"
+            id="name"
+            name="name"
+            autocomplete="name"
+            required
+          /><br />
+          <label for="price">Price:</label><br />
+          <input
+            type="number"
+            id="price"
+            name="price"
+            autocomplete="off"
+            step="0.01"
+            required
+          /><br />
+          <label for="currency">Currency:</label><br />
+          <select id="currency" name="currency" required></select
+          ><br />
+          <label for="category">Category:</label><br />
+          <select id="category" name="category" required>
+            <!-- Options populated by JS --></select
+          ><br />
+          <label for="image">Image File:</label><br />
+          <input type="file" id="image" name="image" accept="image/*" /><br />
+          <!-- Changed type to file -->
+          <label for="description">Description:</label><br />
+          <textarea
+            id="description"
+            name="description"
+            autocomplete="off"
+          ></textarea
+          ><br />
+          <button type="submit">Add Item</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Items List Container -->
+    <div
+      id="edit-items-list-container"
+      class="form-container"
+      style="display: none"
+    >
+      <h2>Edit Menu Items</h2>
+      <ul id="menu-items-list">
+        <!-- Populated by JS -->
+      </ul>
+    </div>
+
+    <!-- Edit Item Form Container -->
+    <div id="edit-item-container" class="form-container" style="display: none">
+      <h2>Edit Item</h2>
+      <form id="edit-item-form">
+        <input type="hidden" id="edit-index" name="edit-index" />
+        <label for="edit-name">Name:</label><br />
+        <input
+          type="text"
+          id="edit-name"
+          name="edit-name"
+          autocomplete="name"
+          required
+        /><br />
+        <label for="edit-price">Price:</label><br />
+        <input
+          type="number"
+          id="edit-price"
+          name="edit-price"
+          autocomplete="off"
+          step="0.01"
+          required
+        /><br />
+        <label for="edit-currency">Currency:</label><br />
+        <select id="edit-currency" name="edit-currency" required></select
+        ><br />
+        <label for="edit-category">Category:</label><br />
+        <select id="edit-category" name="edit-category" required>
+          <!-- Options populated by JS --></select
+        ><br />
+        <label for="edit-image">New Image File (optional):</label><br />
+        <input
+          type="file"
+          id="edit-image"
+          name="edit-image"
+          accept="image/*"
+        /><br />
+        <!-- Changed type to file -->
+        <!-- We might need a way to show the current image -->
+        <label for="edit-description">Description:</label><br />
+        <textarea
+          id="edit-description"
+          name="edit-description"
+          autocomplete="off"
+        ></textarea
+        ><br />
+        <button type="submit">Save Item</button>
+      </form>
+    </div>
+
+    <!-- Edit Info Modal Container -->
+    <div id="edit-info-modal" class="modal-overlay">
+      <div id="edit-info-container" class="modal-content">
+        <h2>Edit Restaurant Info</h2>
+        <form id="edit-info-form">
+          <label for="edit-logo">Restaurant Logo:</label><br />
+          <img
+            src=""
+            alt="Current Logo"
+            id="edit-logo-preview"
+            style="max-width: 100px; max-height: 100px; margin-bottom: 10px"
+          /><br />
+          <input
+            type="file"
+            id="edit-logo"
+            name="edit-logo"
+            accept="image/*"
+          /><br />
+
+          <label for="edit-phone-number">Phone Number:</label><br />
+          <input
+            type="text"
+            id="edit-phone-number"
+            name="edit-phone-number"
+            autocomplete="tel"
+            required
+          /><br />
+          <label for="edit-area">Area:</label><br />
+          <input
+            type="text"
+            id="edit-area"
+            name="edit-area"
+            autocomplete="address-level2"
+            required
+          /><br />
+
+          <label for="edit-background-color">Background Color:</label><br />
+          <input
+            type="color"
+            id="edit-background-color"
+            name="edit-background-color"
+            value="#808080"
+          /><br />
+
+          <label for="edit-item-color">Item Background Color:</label><br />
+          <input
+            type="color"
+            id="edit-item-color"
+            name="edit-item-color"
+            value="#666666"
+          /><br />
+
+          <label for="edit-item-name-color">Food Name Text Color:</label><br />
+          <input
+            type="color"
+            id="edit-item-name-color"
+            name="edit-item-name-color"
+            value="#ffffff"
+          /><br />
+
+          <label for="edit-item-price-color">Price Text Color:</label><br />
+          <input
+            type="color"
+            id="edit-item-price-color"
+            name="edit-item-price-color"
+            value="#ffffff"
+          /><br />
+
+          <button type="submit">Save Info</button>
+          <button type="button" class="cancel-btn" id="cancel-edit-info-btn">
+            Cancel
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Share Menu Modal -->
+    <div id="share-menu-modal" class="modal-overlay">
+      <div class="modal-content">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        <h2>Share Your Menu</h2>
+        <p id="share-link-message">Link copied to clipboard!</p>
+        <button id="generate-qr-btn">Generate QR Code</button>
+        <div
+          id="qrcode-container"
+          style="margin-top: 15px; text-align: center"
+        ></div>
+      </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qr-code-modal" class="modal-overlay">
+      <div class="modal-content">
+        <button class="close-btn" aria-label="Close">&times;</button>
+        <h2>Scan QR Code</h2>
+        <div
+          id="qr-loading-spinner"
+          class="spinner"
+          style="display: none"
+        ></div>
+        <div
+          id="qr-code-display"
+          style="margin-top: 15px; text-align: center; position: relative"
+        ></div>
+        <div id="qr-restaurant-name" class="qr-overlay-text"></div>
+        <!-- New div for restaurant name -->
+        <button id="download-qr-btn" style="margin-top: 15px">
+          Download QR Code
+        </button>
+      </div>
+    </div>
+    <div id="loading-indicator" class="loading-indicator">
+      <div class="spinner"></div>
+      <p>Adding item...</p>
+    </div>
+
+    <!-- Load AWS SDK for S3 (R2 compatibility) FIRST -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1175.0.min.js"></script>
+    <!-- Load Supabase library FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load main script AFTER Supabase and AWS SDK are loaded -->
+    <script src="script.js"></script>
+  </body>
+</html>

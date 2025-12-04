@@ -1,0 +1,604 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background-color: #808080;
+}
+
+.header {
+  background-color: #666666;
+  padding: 1rem 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.restaurant-info span {
+  color: #ffffff; /* White color */
+  font-size: 0.8rem; /* Small font size */
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Light red color for delete button */
+.light-red-btn {
+  background-color: #ffcccc; /* Light red */
+  color: #ff0000; /* Dark red text */
+  border: 1px solid #ff0000; /* Dark red border */
+}
+
+/* Toast Notification Styling */
+.toast {
+  position: fixed;
+  top: 40%; /* Position slightly above the middle */
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.toast.hide {
+  opacity: 0;
+}
+
+/* Styles for category delete icon */
+.category-delete-icon {
+  margin-left: 8px; /* Space between text and icon */
+  color: #ff6b6b; /* A reddish color */
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.category-delete-icon:hover {
+  color: #e03131; /* Darker red on hover */
+}
+/* Logo Styling */
+.logo {
+  width: 60px;
+  height: auto;
+  object-fit: contain; /* Ensure logo fits without cropping */
+}
+
+/* Menu Item Image Styling */
+.item-image {
+  width: 100%;
+  height: 180px;
+  object-fit: cover; /* Cover the area, potentially cropping */
+  display: block; /* Prevent extra space below image */
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .logo {
+    width: 40px; /* Smaller logo on smaller screens */
+  }
+
+  .item-image {
+    height: 100px; /* Smaller item images on smaller screens */
+  }
+}
+/* Menu Layout Styling */
+.menu-container {
+  padding: 1rem 2rem;
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* Default 3 columns */
+  gap: 1.5rem;
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.menu-item {
+  background-color: #666666;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  cursor: pointer; /* Keep cursor for description toggle */
+  width: 100%;
+  display: flex; /* Use flexbox for item content layout */
+  flex-direction: column; /* Stack image and content */
+}
+
+.menu-item:hover {
+  transform: translateY(-5px);
+}
+
+.item-image {
+  width: 100%;
+  height: 180px; /* Keep a consistent height */
+  object-fit: cover;
+  display: block;
+}
+
+.item-content {
+  padding: 0.5rem 1rem 1rem 1rem; /* Adjusted padding to move name up */
+  flex-grow: 1; /* Allow content to take available space */
+  display: flex; /* Use flexbox for name, header and description */
+  flex-direction: column; /* Stack name, header and description */
+}
+
+.item-name {
+  /* New style for the h3 element */
+  font-size: 0.9rem; /* Same size as description */
+  font-weight: 600;
+  color: #ffffff; /* Ensure visibility */
+  margin-bottom: 0.5rem; /* Space below the name */
+  overflow: visible; /* Allow content to wrap */
+  text-overflow: clip; /* Prevent ellipsis */
+  white-space: normal; /* Allow text to wrap */
+}
+
+.item-header {
+  display: flex; /* Use flexbox for price */
+  justify-content: flex-end; /* Align price to the right */
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.item-price {
+  /* Renamed from .menu-item .item-content .item-price */
+  font-weight: 600;
+  color: #ffffff; /* Ensure visibility */
+  white-space: nowrap; /* Prevent price from wrapping */
+}
+
+.item-description {
+  max-height: 0;
+  overflow: hidden;
+  transition:
+    max-height 0.3s ease,
+    margin-top 0.3s ease;
+  color: #eeeeee;
+  margin-top: 0;
+  font-size: 0.9rem;
+}
+
+.item-description.visible {
+  max-height: 200px; /* Adjust as needed */
+  margin-top: 0.75rem;
+}
+
+.expand-indicator {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+  color: #cccccc;
+  transition: transform 0.3s ease;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+  /* Adjust breakpoint if needed */
+  .menu-grid {
+    grid-template-columns: repeat(2, 1fr); /* 2 columns for tablets */
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+  .menu-item {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .item-content {
+    padding: 0.75rem;
+  }
+  .item-header {
+    display: flex; /* Use flexbox for name and price */
+    flex-wrap: nowrap; /* Ensure name and price stay on one line */
+    justify-content: space-between; /* Space out name and price */
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 0.5rem;
+  }
+  .item-name {
+    font-size: 0.8rem; /* Match item-description font size */
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .item-price {
+    font-size: 0.9rem;
+  }
+  .item-description {
+    font-size: 0.8rem;
+  }
+  .expand-indicator {
+    padding-top: 0.25rem;
+  }
+  .item-image {
+    height: 150px;
+  }
+  .logo {
+    width: 40px;
+  }
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  .restaurant-name {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .item-image {
+    height: 120px;
+  }
+  .item-name {
+    font-size: 0.75rem; /* Match item-description font size */
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .item-price {
+    font-size: 0.75rem;
+  }
+  .item-description {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu-grid {
+    grid-template-columns: repeat(3, 1fr); /* 3 columns for smaller screens */
+    gap: 1rem;
+    padding: 0.5rem 0; /* Removed left/right padding for minimal space on smaller screens */
+  }
+  .menu-item {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  .item-content {
+    padding: 0.75rem;
+  }
+  .item-header {
+    display: flex; /* Use flexbox for name and price */
+    flex-wrap: nowrap; /* Ensure name and price stay on one line */
+    justify-content: space-between; /* Space out name and price */
+    align-items: flex-start; /* Align items to the top */
+    margin-bottom: 0.5rem;
+  }
+  .item-name {
+    font-size: 0.8rem; /* Match item-description font size */
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .item-price {
+    font-size: 0.9rem;
+  }
+  .item-description {
+    font-size: 0.8rem;
+  }
+  .expand-indicator {
+    padding-top: 0.25rem;
+  }
+  .item-image {
+    height: 150px;
+  }
+  .logo {
+    width: 40px;
+  }
+  .header {
+    padding: 0.75rem 1rem;
+  }
+  .restaurant-name {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .item-image {
+    height: 120px;
+  }
+  .item-name {
+    font-size: 0.75rem; /* Match item-description font size */
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+  .item-price {
+    font-size: 0.75rem;
+  }
+  .item-description {
+    font-size: 0.75rem;
+  }
+}
+/* Category Navigation Styling */
+.category-nav {
+  background-color: #666666;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.category-scroll {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: thin; /* Firefox */
+  -webkit-overflow-scrolling: touch; /* iOS */
+}
+
+/* Scrollbar styling for Webkit browsers (Chrome, Safari) */
+.category-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.category-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.category-scroll::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.category-scroll::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.category-btn {
+  padding: 0.5rem 1.5rem;
+  border: none;
+  border-radius: 20px;
+  background-color: #f0f0f0;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+  font-weight: 500;
+}
+
+.category-btn:hover {
+  background-color: #e0e0e0;
+}
+
+.category-btn.active {
+  background-color: #333;
+  color: #ffffff;
+}
+
+.category-btn.active:hover {
+  background-color: #555; /* Slightly lighter dark on hover */
+}
+
+/* Styles for draggable categories */
+.category-btn.draggable {
+  cursor: grab;
+}
+
+.category-btn.dragging {
+  opacity: 0.5;
+  border: 2px dashed #ccc;
+  background-color: #e0e0e0;
+}
+
+/* Sortable.js specific styles for better visual feedback */
+.sortable-ghost {
+  opacity: 0.2; /* Make the ghost element very transparent */
+  background-color: #cccccc !important; /* Highlight the drop zone */
+  border: 2px dashed #333;
+}
+
+.sortable-chosen {
+  /* Style for the element being dragged */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+  transform: scale(1.05) rotate(0deg); /* Ensure it looks lifted */
+  opacity: 1;
+}
+
+/* Floating effect for draggable categories when edit mode is active */
+.category-btn.draggable:not(.active) {
+  /* Subtle rotation and shadow to indicate movability */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: float 1.5s ease-in-out infinite; /* Apply floating animation, faster speed */
+}
+
+.category-btn.draggable:not(.active):hover {
+  transform: rotate(0deg) scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0; /* Start hidden for fade-in */
+  visibility: hidden; /* Start hidden for fade-in */
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.modal-overlay.visible {
+  opacity: 1;
+  visibility: visible;
+  display: flex;
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #808080;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+  color: #ffffff;
+  transform: scale(0.9); /* Start slightly smaller for pop-in effect */
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.visible .modal-content {
+  transform: scale(1); /* Scale to normal size when visible */
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.modal-content label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.modal-content input[type='text'],
+.modal-content input[type='number'],
+.modal-content input[type='file'],
+.modal-content select,
+.modal-content textarea {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #ffffff; /* Ensure the select box itself has a white background */
+  color: #333; /* Ensure the select box text is dark */
+  box-sizing: border-box;
+}
+
+/* Explicitly style the options within the select for better cross-browser compatibility */
+.modal-content select option {
+  background-color: #ffffff;
+  color: #333;
+}
+
+.modal-content textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Share Menu Modal Specific Styles */
+#share-menu-modal .modal-content {
+  text-align: center;
+}
+
+#share-menu-modal #share-link-message {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #4caf50; /* Green color for success message */
+  margin-bottom: 15px;
+  display: none; /* Hidden by default, shown by JS */
+}
+
+#share-menu-modal #generate-qr-btn {
+  background-color: #2196f3; /* Blue color */
+  color: white;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  margin-top: 10px;
+}
+
+#share-menu-modal #generate-qr-btn:hover {
+  background-color: #1e88e5;
+}
+
+#qrcode-container canvas {
+  display: block; /* Ensure canvas is block level */
+  margin: 0 auto; /* Center the QR code */
+}
+
+/* Loading Spinner Styles */
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #ffffff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin: 20px auto; /* Center the spinner */
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+  100% {
+    transform: translateY(0px) rotate(-1deg);
+  }
+}
+
+/* QR Code Modal Specific Styles */
+#qr-code-modal .modal-content {
+  text-align: center;
+}
+
+#qr-code-modal #qr-code-display canvas {
+  display: block;
+  margin: 0 auto;
+}
+.loading-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 1.2rem;
+  z-index: 1001; /* Above modals */
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.loading-indicator.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.loading-indicator p {
+  margin-top: 15px;
+}

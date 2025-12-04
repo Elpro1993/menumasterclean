@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>iOS Safari Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background-color: #f0f0f0;
+      }
+
+      .test-button {
+        background-color: #4caf50;
+        color: white;
+        padding: 15px 30px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        margin: 10px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: manipulation;
+      }
+
+      .test-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .test-modal-content {
+        background-color: white;
+        padding: 30px;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 400px;
+      }
+
+      .test-input {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      .test-submit {
+        background-color: #2196f3;
+        color: white;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 5px;
+        width: 100%;
+        font-size: 16px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        touch-action: manipulation;
+      }
+
+      .close-btn {
+        float: right;
+        font-size: 24px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        touch-action: manipulation;
+      }
+
+      .log {
+        background-color: #333;
+        color: #0f0;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>iOS Safari Test Page</h1>
+    <p>This is a simplified test to debug iOS Safari issues.</p>
+
+    <div class="log" id="log">Console Log will appear here...<br /></div>
+
+    <button class="test-button" id="show-modal-btn">Show Test Modal</button>
+    <button class="test-button" id="direct-alert-btn">Direct Alert Test</button>
+
+    <div class="test-modal" id="test-modal">
+      <div class="test-modal-content">
+        <span class="close-btn" id="close-modal">&times;</span>
+        <h3>Test Form</h3>
+        <form id="test-form">
+          <input
+            type="text"
+            class="test-input"
+            id="test-input"
+            placeholder="Enter test text"
+            required
+          />
+          <button type="submit" class="test-submit">Submit Test</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function log(message) {
+        const logDiv = document.getElementById('log');
+        const timestamp = new Date().toLocaleTimeString();
+        logDiv.innerHTML += `[${timestamp}] ${message}<br>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
+        console.log(message);
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        log('DOM Content Loaded');
+        log('User Agent: ' + navigator.userAgent);
+        log('Platform: ' + navigator.platform);
+
+        const showModalBtn = document.getElementById('show-modal-btn');
+        const directAlertBtn = document.getElementById('direct-alert-btn');
+        const testModal = document.getElementById('test-modal');
+        const closeModal = document.getElementById('close-modal');
+        const testForm = document.getElementById('test-form');
+
+        // Test 1: Direct alert
+        function handleDirectAlert(e) {
+          log('Direct alert button clicked - Event type: ' + e.type);
+          alert('Direct alert test - this should work on all devices');
+        }
+
+        // Test 2: Modal show
+        function handleShowModal(e) {
+          log('Show modal button clicked - Event type: ' + e.type);
+          e.preventDefault();
+          e.stopPropagation();
+          testModal.style.display = 'flex';
+          log('Modal display set to flex');
+        }
+
+        // Test 3: Form submission
+        function handleFormSubmit(e) {
+          log('Form submit triggered - Event type: ' + e.type);
+          e.preventDefault();
+          e.stopPropagation();
+
+          const inputValue = document.getElementById('test-input').value;
+          log('Input value: ' + inputValue);
+
+          if (!inputValue.trim()) {
+            log('No input value entered');
+            alert('Please enter some text');
+            return;
+          }
+
+          log('Form submission successful!');
+          alert('Form submitted successfully with: ' + inputValue);
+          testForm.reset();
+          testModal.style.display = 'none';
+        }
+
+        // Test 4: Close modal
+        function handleCloseModal(e) {
+          log('Close modal clicked - Event type: ' + e.type);
+          e.preventDefault();
+          e.stopPropagation();
+          testModal.style.display = 'none';
+          log('Modal hidden');
+        }
+
+        // Add multiple event listeners for iOS compatibility
+        if (directAlertBtn) {
+          directAlertBtn.addEventListener('click', handleDirectAlert);
+          directAlertBtn.addEventListener('touchend', handleDirectAlert);
+          log('Direct alert button listeners added');
+        }
+
+        if (showModalBtn) {
+          showModalBtn.addEventListener('click', handleShowModal);
+          showModalBtn.addEventListener('touchend', handleShowModal);
+          log('Show modal button listeners added');
+        }
+
+        if (closeModal) {
+          closeModal.addEventListener('click', handleCloseModal);
+          closeModal.addEventListener('touchend', handleCloseModal);
+          log('Close modal listeners added');
+        }
+
+        if (testForm) {
+          testForm.addEventListener('submit', handleFormSubmit);
+          log('Form submit listener added');
+
+          // Also add touchend to submit button specifically
+          const submitBtn = testForm.querySelector('button[type="submit"]');
+          if (submitBtn) {
+            submitBtn.addEventListener('touchend', function (e) {
+              log(
+                'Submit button touchend - preventing default and calling form submit',
+              );
+              e.preventDefault();
+              e.stopPropagation();
+              setTimeout(() => {
+                handleFormSubmit(e);
+              }, 100);
+            });
+            log('Submit button touchend listener added');
+          }
+        }
+
+        // Modal background click to close
+        if (testModal) {
+          testModal.addEventListener('click', function (e) {
+            if (e.target === testModal) {
+              log('Modal background clicked');
+              testModal.style.display = 'none';
+            }
+          });
+          log('Modal background click listener added');
+        }
+
+        log('All event listeners set up');
+      });
+    </script>
+  </body>
+</html>

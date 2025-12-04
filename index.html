@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication - MenuMaster</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="preload"
+      as="image"
+      href="Generated Image June 29, 2025 - 3_33PM.webp"
+    />
+    <!-- Include Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      /* Add some specific styles for the auth page */
+      body.auth-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-size: cover;
+        background-position: left center; /* Align the left side of the image to the left of the container */
+        background-repeat: no-repeat;
+        background-color: #f4f4f4; /* Lighter background for contrast */
+      }
+      .auth-background-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        z-index: -1; /* Ensure it's behind other content */
+      }
+      .auth-background-image-tag {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* Cover the entire container */
+        object-position: left center; /* Align the left side of the image to the left of the container */
+      }
+      .auth-container {
+        background-color: #ffffff;
+        padding: 2rem 3rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        max-width: 450px;
+        width: 90%;
+      }
+      .auth-container h1 {
+        color: #333;
+        margin-bottom: 1.5rem;
+      }
+      .auth-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+      .auth-form {
+        display: none; /* Hidden by default */
+        text-align: left;
+      }
+      .auth-form.active {
+        display: block; /* Shown when active */
+      }
+      .form-group {
+        margin-bottom: 1rem;
+      }
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: #555;
+        font-weight: 500;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+      }
+      .submit-btn {
+        width: 100%;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 4px;
+        background-color: #4caf50;
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-top: 1rem;
+      }
+      .submit-btn:hover {
+        background-color: #45a049;
+      }
+      .error-message {
+        color: red;
+        font-size: 0.9em;
+        margin-top: 1rem;
+        text-align: center;
+        display: none; /* Hidden by default */
+      }
+    </style>
+  </head>
+  <body class="auth-page">
+    <picture class="auth-background-image">
+      <source
+        srcset="Generated Image June 29, 2025 - 3_33PM.avif"
+        type="image/avif"
+      />
+      <source
+        srcset="Generated Image June 29, 2025 - 3_33PM.webp"
+        type="image/webp"
+      />
+      <img
+        src="Generated Image June 29, 2025 - 3_33PM.jpg"
+        alt="MenuMaster Background"
+        loading="eager"
+        class="auth-background-image-tag"
+      />
+    </picture>
+
+    <div class="auth-container">
+      <h1>Welcome to MenuMaster</h1>
+      <div class="auth-buttons">
+        <button id="show-login-btn" class="action-btn">Login</button>
+        <button
+          id="show-signup-btn"
+          class="action-btn"
+          style="background-color: #2196f3"
+        >
+          Sign Up
+        </button>
+      </div>
+
+      <style>
+        /* Add styles for action buttons */
+        .action-btn {
+          padding: 1rem 2rem; /* Increase padding for bigger buttons */
+          font-size: 1.1rem; /* Increase font size */
+          font-weight: 600; /* Make text bolder */
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background-color 0.3s ease;
+        }
+
+        .action-btn:hover {
+          opacity: 0.9;
+        }
+      </style>
+
+      <!-- Login Form -->
+      <form id="login-form" class="auth-form">
+        <h2>Login</h2>
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <!-- Changed from phone to email -->
+          <input type="email" id="login-email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" required />
+        </div>
+        <button type="submit" class="submit-btn">Login</button>
+        <p id="login-error" class="error-message"></p>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form id="signup-form" class="auth-form">
+        <h2>Sign Up</h2>
+        <div class="form-group">
+          <label for="signup-restaurant-name">Restaurant Name</label>
+          <input
+            type="text"
+            id="signup-restaurant-name"
+            name="restaurant_name"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="signup-phone">Phone Number</label>
+          <input type="tel" id="signup-phone" name="phone" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-user-name">Your Name</label>
+          <input type="text" id="signup-user-name" name="user_name" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input
+            type="password"
+            id="signup-password"
+            name="password"
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          class="submit-btn"
+          style="background-color: #2196f3"
+        >
+          Sign Up
+        </button>
+        <p id="signup-error" class="error-message"></p>
+      </form>
+    </div>
+
+    <script>
+      const showLoginBtn = document.getElementById('show-login-btn');
+      const showSignupBtn = document.getElementById('show-signup-btn');
+      const loginForm = document.getElementById('login-form');
+      const signupForm = document.getElementById('signup-form');
+      const authButtons = document.querySelector('.auth-buttons');
+      const loginError = document.getElementById('login-error');
+      const signupError = document.getElementById('signup-error');
+
+      // --- Supabase Initialization ---
+      const supabaseUrl = 'https://qlhoipsilplgtfcpbrpr.supabase.co';
+      const supabaseAnonKey =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsaG9pcHNpbHBsZ3RmY3BicnByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExNzg0NzMsImV4cCI6MjA1Njc1NDQ3M30.e4UlDKIAJ4SAPuOwgPFoZQNiVlD7JZIgn73yQVAX6LE';
+      const { createClient } = supabase; // Destructure createClient from the global supabase object
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey); // Initialize the client
+
+      // --- Form Visibility Logic ---
+      showLoginBtn.addEventListener('click', () => {
+        loginForm.classList.add('active');
+        signupForm.classList.remove('active');
+        authButtons.style.display = 'none';
+        loginError.style.display = 'none'; // Hide errors when switching
+        signupError.style.display = 'none';
+      });
+
+      showSignupBtn.addEventListener('click', () => {
+        signupForm.classList.add('active');
+        loginForm.classList.remove('active');
+        authButtons.style.display = 'none';
+        loginError.style.display = 'none'; // Hide errors when switching
+        signupError.style.display = 'none';
+      });
+
+      // --- Login Logic ---
+      loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginError.style.display = 'none'; // Hide previous errors
+        const email = document.getElementById('login-email').value;
+        const password = document.getElementById('login-password').value;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+          // Use supabaseClient
+          email: email,
+          password: password,
+        });
+
+        if (error) {
+          console.error('Login Error:', error);
+          loginError.textContent =
+            error.message || 'Login failed. Please check your credentials.';
+          loginError.style.display = 'block';
+        } else if (data.user) {
+          console.log('Login Successful:', data.user);
+          // Store user ID and redirect
+          localStorage.setItem('userId', data.user.id);
+          window.location.href = 'dashboard.html';
+        } else {
+          console.error('Login successful but no user data found.');
+          loginError.textContent =
+            'Login failed: Could not retrieve user data.';
+          loginError.style.display = 'block';
+        }
+      });
+
+      // --- Sign Up Logic ---
+      signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        signupError.style.display = 'none'; // Hide previous errors
+        const restaurantName = document.getElementById(
+          'signup-restaurant-name',
+        ).value;
+        const phone = document.getElementById('signup-phone').value;
+        const userName = document.getElementById('signup-user-name').value;
+        const email = document.getElementById('signup-email').value;
+        const password = document.getElementById('signup-password').value;
+
+        const { data, error } = await supabaseClient.auth.signUp({
+          // Use supabaseClient
+          email: email,
+          password: password,
+          options: {
+            data: {
+              // Store additional info in user_metadata
+              restaurant_name: restaurantName,
+              phone_number: phone,
+              user_name: userName,
+              // Note: You might need to configure Supabase to allow these fields
+              // or create a separate 'profiles' table linked to the auth user.
+            },
+          },
+        });
+
+        if (error) {
+          console.error('Sign Up Error:', error);
+          signupError.textContent =
+            error.message || 'Sign up failed. Please try again.';
+          signupError.style.display = 'block';
+        } else {
+          console.log('Sign Up Successful:', data);
+          // Check if email verification is required (user exists but no identity means verification needed)
+          if (
+            data.user &&
+            data.user.identities &&
+            data.user.identities.length === 0
+          ) {
+            alert(
+              'Sign up successful! Please check your email to verify your account.',
+            );
+            signupForm.style.display = 'none'; // Hide form after success
+          } else if (data.user) {
+            // User created and potentially auto-logged in
+            alert('Sign up successful! You are now logged in.');
+            // Store user ID and redirect
+            localStorage.setItem('userId', data.user.id);
+            window.location.href = 'dashboard.html';
+          } else {
+            // Handle cases where sign up might succeed but user data isn't returned as expected
+            console.error('Sign up successful but no user data found.');
+            signupError.textContent =
+              'Sign up completed, but failed to log in automatically. Please try logging in.';
+            signupError.style.display = 'block';
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

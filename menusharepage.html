@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restaurant Menu</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="preload" as="image" href="placeholder-logo.webp" />
+    <!-- Assuming placeholder-logo.webp is the optimized logo -->
+  </head>
+  <body>
+    <header class="header">
+      <div class="logo-container">
+        <img src="" alt="Restaurant Logo" class="logo" id="restaurant-logo" />
+        <h1 class="restaurant-name" id="restaurant-name">
+          Loading Restaurant...
+        </h1>
+      </div>
+      <div class="restaurant-info">
+        <span id="restaurant-phone-number"></span> |
+        <span id="restaurant-area"></span>
+      </div>
+    </header>
+
+    <nav class="category-nav">
+      <div class="category-scroll">
+        <button class="category-btn active">All</button>
+        <!-- Categories populated by JS -->
+      </div>
+    </nav>
+
+    <main class="menu-container">
+      <div class="menu-grid">
+        <!-- Menu items populated by JS -->
+      </div>
+    </main>
+
+    <!-- Load Supabase library FIRST -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load your script AFTER Supabase is loaded -->
+    <script src="share_script.js"></script>
+    <!-- Use the share page script -->
+
+    <!-- Form containers removed as this is a display-only page -->
+  </body>
+</html>
