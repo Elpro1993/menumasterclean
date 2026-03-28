@@ -15,9 +15,24 @@
     />
     <link rel="preload" as="image" href="placeholder-logo.webp" />
     <!-- Assuming placeholder-logo.webp is the optimized logo -->
+    <style>
+      .cover-photo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        z-index: -1;
+        opacity: 1;
+      }
+    </style>
+    
   </head>
   <body>
     <header class="header">
+      <div id="cover-photo" class="cover-photo"></div>
       <div class="logo-container">
         <img src="" alt="Restaurant Logo" class="logo" id="restaurant-logo" />
         <h1 class="restaurant-name" id="restaurant-name">

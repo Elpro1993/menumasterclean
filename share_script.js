@@ -13,6 +13,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let currentMenuItems = []; // Holds the current menu items fetched from DB
   let currentCategories = []; // Holds the current categories fetched from DB
   let ownerUserId = null; // Holds the ID of the owner whose menu is being displayed
+  let isMenuItemOrderIndexSupported = true; // Assume supported by default
 
   // Centralized error handling
   function handleError(error, message) {
@@ -92,18 +93,41 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         'Cannot load menu items',
       );
     console.log(`Fetching menu items for user: ${userId}...`);
-    const { data, error } = await supabaseClient
+    let query = supabaseClient
       .from('menu_items')
       .select('*')
       .eq('user_id', userId); // Filter by provided user ID
 
-    if (error)
-      return handleError(
-        error,
-        `Failed to load menu items (DB Error: ${error.message})`,
-      );
+    // Try to order by order_index first
+    const { data, error } = await query.order('order_index', {
+      ascending: true,
+      nullsFirst: true,
+    });
 
-    console.log('Menu items fetched:', data);
+    if (error) {
+      if (error.code === '42703') {
+        console.warn(
+          '"order_index" column not found in "menu_items". Falling back to default order. Reordering will be disabled.',
+        );
+        isMenuItemOrderIndexSupported = false;
+        // Retry query without order_index
+        const { data: fallbackData, error: fallbackError } =
+          await supabaseClient
+            .from('menu_items')
+            .select('*')
+            .eq('user_id', userId);
+
+        if (fallbackError) {
+          return handleError(
+            fallbackError,
+            'Failed to load menu items (fallback)',
+          );
+        }
+        return fallbackData || [];
+      } else {
+        return handleError(error, 'Failed to load menu items');
+      }
+    }
     return data || [];
   }
 
@@ -118,7 +142,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const { data, error, status } = await supabaseClient
         .from('profiles') // Assuming a 'profiles' table
         .select(
-          'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color',
+          'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, cover_photo_url',
         ) // Select the relevant columns including colors
         .eq('id', userId) // Filter by the user's ID
         .single(); // Expect only one profile per user
@@ -154,6 +178,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const itemPriceStyle = profileColors.item_price_color
       ? `style="color: ${profileColors.item_price_color};"`
       : '';
+    const itemDescriptionStyle = profileColors.item_description_color
+      ? `style="color: ${profileColors.item_description_color};"`
+      : '';
 
     card.innerHTML = `
             <img src="${imageUrl}" alt="${item.name}" class="item-image" onerror="this.onerror=null;this.src='placeholder.png';">
@@ -162,7 +189,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                 <div class="item-header">
                     <span class="item-price" ${itemPriceStyle}>${item.price ? '$' + parseFloat(item.price).toFixed(2) : 'N/A'}</span>
                 </div>
-                <p class="item-description">${item.description || 'No description available.'}</p>
+                <p class="item-description" ${itemDescriptionStyle}>${item.description || 'No description available.'}</p>
                 <div class="expand-indicator">
                     <i class="fas fa-chevron-down"></i>
                 </div>
@@ -242,7 +269,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     categories.forEach((category) => {
       const categoryButton = document.createElement('button');
       categoryButton.className = 'category-btn';
-      categoryButton.textContent = category.name;
+      if (category.icon_enabled && category.icon_class) {
+        const icon = document.createElement('i');
+        icon.className = `fas ${category.icon_class}`;
+        categoryButton.prepend(icon);
+      }
+      categoryButton.appendChild(document.createTextNode(category.name));
       categoryButton.onclick = () => {
         document
           .querySelectorAll('.category-btn')
@@ -304,6 +336,14 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       // Apply fetched colors
       if (profileData.background_color) {
         document.body.style.backgroundColor = profileData.background_color;
+      }
+      if (profileData.cover_photo_url) {
+        const coverPhotoElement = document.getElementById('cover-photo');
+        if (coverPhotoElement) {
+          coverPhotoElement.style.backgroundImage = `url('${getProfileLogoPublicUrl(
+            profileData.cover_photo_url,
+          )}')`;
+        }
       }
       if (profileData.item_color) {
         // Need to wait for menu items to be rendered before applying item color
@@ -369,6 +409,13 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       document.querySelectorAll('.menu-item').forEach((item) => {
         item.style.backgroundColor = profileData.item_color;
       });
+    }
+    if (profileData && profileData.item_description_color) {
+      document
+        .querySelectorAll('.item-description')
+        .forEach((descriptionElement) => {
+          descriptionElement.style.color = profileData.item_description_color;
+        });
     }
     console.log('Share script DOMContentLoaded finished.');
   });

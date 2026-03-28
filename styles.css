@@ -10,10 +10,15 @@ body {
 }
 
 .header {
-  background-color: #666666;
+  position: relative;
+  z-index: 1;
+  background-color: transparent; /* Make header transparent to see cover photo */
   padding: 1rem 2rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+
+
 .restaurant-info span {
   color: #ffffff; /* White color */
   font-size: 0.8rem; /* Small font size */
@@ -360,6 +365,14 @@ body {
     background-color 0.3s ease,
     color 0.3s ease;
   font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.category-btn .fas {
+  font-size: 1.2rem;
 }
 
 .category-btn:hover {
@@ -404,7 +417,9 @@ body {
 .category-btn.draggable:not(.active) {
   /* Subtle rotation and shadow to indicate movability */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   animation: float 1.5s ease-in-out infinite; /* Apply floating animation, faster speed */
 }
 
@@ -462,6 +477,24 @@ body {
   margin-bottom: 1.5rem;
   text-align: center;
   font-weight: 600;
+}
+#icon-picker-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.icon-picker-icon {
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.icon-picker-icon.selected {
+  background-color: #555;
+  border-radius: 5px;
 }
 
 .modal-content label {

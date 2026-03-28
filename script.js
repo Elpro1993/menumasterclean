@@ -38,7 +38,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let isEditMode = false; // Tracks if the dashboard is in item editing mode
   let isCategoryEditMode = false; // Tracks if categories are in edit/rearrange mode
   let isOrderIndexSupported = true; // Assume supported by default
+  let isMenuItemOrderIndexSupported = true; // Assume supported by default
   let loggedInUserId = null; // Holds the ID of the currently logged-in user
+  let menuItemsSortable = null; // Holds the Sortable instance for menu items
 
   // Centralized error handling
   function handleError(error, message) {
@@ -97,26 +99,35 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       .eq('user_id', loggedInUserId);
 
     // Try to order by order_index first
-    const { data, error } = await query.order('order_index', { ascending: true, nullsFirst: true }).order('name', { ascending: true });
+    const { data, error } = await query
+      .order('order_index', { ascending: true, nullsFirst: true })
+      .order('name', { ascending: true });
 
     if (error) {
       // 42703: undefined_column
       if (error.code === '42703') {
-        console.warn('"order_index" column not found in "categories". Falling back to ordering by name. Reordering will be disabled.');
+        console.warn(
+          '"order_index" column not found in "categories". Falling back to ordering by name. Reordering will be disabled.',
+        );
         isOrderIndexSupported = false;
         // Retry query without order_index
-        const { data: fallbackData, error: fallbackError } = await supabaseClient
-          .from('categories')
-          .select('*')
-          .eq('user_id', loggedInUserId)
-          .order('name', { ascending: true });
+        const { data: fallbackData, error: fallbackError } =
+          await supabaseClient
+            .from('categories')
+            .select('*')
+            .eq('user_id', loggedInUserId)
+            .order('name', { ascending: true });
 
         if (fallbackError) {
-          return handleError(fallbackError, 'Failed to load categories (fallback)');
+          return handleError(
+            fallbackError,
+            'Failed to load categories (fallback)',
+          );
         }
         return fallbackData || [];
-      } else if (error.code !== '42501') { // Ignore RLS errors if user is not logged in
-          return handleError(error, 'Failed to load categories');
+      } else if (error.code !== '42501') {
+        // Ignore RLS errors if user is not logged in
+        return handleError(error, 'Failed to load categories');
       }
     }
     return data || [];
@@ -124,19 +135,80 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
   async function getMenuItems() {
     console.log('Fetching menu items...');
-    const { data, error } = await supabaseClient
+    let query = supabaseClient
       .from('menu_items')
       .select('*')
       .eq('user_id', loggedInUserId); // Filter by logged-in user
 
-    if (error)
-      return handleError(
-        error,
-        `Failed to load menu items (DB Error: ${error.message})`,
-      );
+    // Try to order by order_index first
+    const { data, error } = await query.order('order_index', {
+      ascending: true,
+      nullsFirst: true,
+    });
 
-    console.log('Menu items fetched:', data);
+    if (error) {
+      if (error.code === '42703') {
+        console.warn(
+          '"order_index" column not found in "menu_items". Falling back to default order. Reordering will be disabled.',
+        );
+        isMenuItemOrderIndexSupported = false;
+        // Retry query without order_index
+        const { data: fallbackData, error: fallbackError } =
+          await supabaseClient
+            .from('menu_items')
+            .select('*')
+            .eq('user_id', loggedInUserId);
+
+        if (fallbackError) {
+          return handleError(
+            fallbackError,
+            'Failed to load menu items (fallback)',
+          );
+        }
+        return fallbackData || [];
+      } else {
+        return handleError(error, 'Failed to load menu items');
+      }
+    }
     return data || [];
+  }
+
+  async function updateMenuItemOrder(event) {
+    console.log('updateMenuItemOrder called', event);
+    const itemElements = Array.from(
+      document.querySelector('.menu-grid').children,
+    );
+    const updates = itemElements.map((item, index) => {
+      return {
+        id: item.dataset.itemId,
+        order_index: index,
+      };
+    });
+    console.log('updates', updates);
+
+    try {
+      const updatePromises = updates.map((update) =>
+        supabaseClient
+          .from('menu_items')
+          .update({ order_index: update.order_index })
+          .eq('id', update.id),
+      );
+      const results = await Promise.all(updatePromises);
+      results.forEach((result) => {
+        if (result.error) throw result.error;
+      });
+
+      // Update currentMenuItems locally to reflect the new order
+      const newOrderedItems = itemElements.map((itemElement) => {
+        const itemId = itemElement.dataset.itemId;
+        return currentMenuItems.find((item) => item.id === itemId);
+      });
+      currentMenuItems = newOrderedItems.filter(Boolean); // Filter out any undefined items
+
+      showToast('Item order saved!');
+    } catch (error) {
+      handleError(error, 'Failed to save item order');
+    }
   }
 
   async function getCurrencies() {
@@ -158,7 +230,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const { data, error } = await supabaseClient
       .from('profiles')
       .select(
-        'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color',
+        'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, cover_photo_url',
       ) // Select the required fields including new colors
       .eq('id', userId) // Filter by user ID
       .single(); // Expecting a single profile per user
@@ -356,7 +428,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     }
   }
 
-      async function addCategoriesToNav(categories, currentMenuItems, menuGrid) {
+  async function addCategoriesToNav(categories, currentMenuItems, menuGrid) {
     const categoryScroll = document.querySelector(
       '.category-nav .category-scroll',
     );
@@ -390,7 +462,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       editCategoriesBtn.onclick = async () => {
         // Made the onclick handler async
         isCategoryEditMode = !isCategoryEditMode; // Toggle edit mode
-        
+
         // Re-render items to reflect the change in edit mode status
         filterMenuItems(
           document.querySelector('.category-btn.active')?.textContent || 'All',
@@ -399,10 +471,14 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           isEditMode,
           currentCategories,
         ); // Re-filter items
-        
+
         if (isCategoryEditMode) {
           // If entering edit mode, re-render categories to enable dragging/floating
-          await addCategoriesToNav(currentCategories, currentMenuItems, menuGrid);
+          await addCategoriesToNav(
+            currentCategories,
+            currentMenuItems,
+            menuGrid,
+          );
         } else {
           // If exiting edit mode, save the new order
           const orderedCategoryButtons = Array.from(
@@ -410,7 +486,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           );
           const updates = orderedCategoryButtons.map((btn, index) => {
             const categoryId = btn.dataset.categoryId;
-            const category = currentCategories.find(c => c.id === categoryId);
+            const category = currentCategories.find((c) => c.id === categoryId);
             return {
               id: categoryId,
               name: category ? category.name : null, // Include name to satisfy NOT NULL constraint
@@ -426,24 +502,30 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                 .upsert(updates, { onConflict: 'id' });
               if (error) throw error;
               // showToast('Category order saved!'); // Removed toast to avoid confusion when no change is made
-              
+
               // 1. Update currentCategories locally with the new order
-              currentCategories = currentCategories.map(cat => {
-                const update = updates.find(u => u.id === cat.id);
-                if (update) {
-                  return { ...cat, order_index: update.order_index };
-                }
-                return cat;
-              }).sort((a, b) => {
-                // Sort by order_index, handling nulls (nullsFirst: true is handled by DB, but we need local sort)
-                if (a.order_index === null) return b.order_index === null ? 0 : -1;
-                if (b.order_index === null) return 1;
-                return a.order_index - b.order_index;
-              });
+              currentCategories = currentCategories
+                .map((cat) => {
+                  const update = updates.find((u) => u.id === cat.id);
+                  if (update) {
+                    return { ...cat, order_index: update.order_index };
+                  }
+                  return cat;
+                })
+                .sort((a, b) => {
+                  // Sort by order_index, handling nulls (nullsFirst: true is handled by DB, but we need local sort)
+                  if (a.order_index === null)
+                    return b.order_index === null ? 0 : -1;
+                  if (b.order_index === null) return 1;
+                  return a.order_index - b.order_index;
+                });
 
               // 2. Re-render categories to show the newly saved order
-              await addCategoriesToNav(currentCategories, currentMenuItems, menuGrid);
-
+              await addCategoriesToNav(
+                currentCategories,
+                currentMenuItems,
+                menuGrid,
+              );
             } catch (error) {
               handleError(error, 'Failed to save category order');
             }
@@ -475,6 +557,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       categoryButton.className = 'category-btn';
       categoryButton.textContent = category.name; // Set initial text content
       categoryButton.dataset.categoryId = category.id; // Store category ID for drag-and-drop
+
+      if (category.icon_enabled && category.icon_class) {
+        const icon = document.createElement('i');
+        icon.className = `fas ${category.icon_class}`;
+        categoryButton.prepend(icon);
+      }
 
       if (isCategoryEditMode) {
         categoryButton.classList.add('draggable'); // Add a class for styling draggable items
@@ -517,13 +605,13 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     });
 
     if (isCategoryEditMode && isOrderIndexSupported) {
-        new Sortable(categoryScroll, {
-            animation: 300, // Increased animation duration for better visual feedback
-            delay: 200, // Add a delay to allow scrolling without triggering drag
-            touchStartThreshold: 5, // Ensure dragging starts only after a slight movement
-            draggable: '.category-btn.draggable', // Only allow dragging of elements with this class
-            filter: '.action-btn', // Only filter out the edit button
-        });
+      new Sortable(categoryScroll, {
+        animation: 300, // Increased animation duration for better visual feedback
+        delay: 200, // Add a delay to allow scrolling without triggering drag
+        touchStartThreshold: 5, // Ensure dragging starts only after a slight movement
+        draggable: '.category-btn.draggable', // Only allow dragging of elements with this class
+        filter: '.action-btn', // Only filter out the edit button
+      });
     }
   }
 
@@ -606,7 +694,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   }
 
   // --- CRUD Functions ---
-  async function addCategory(categoryName) {
+  async function addCategory(categoryName, categoryIcon) {
     try {
       console.log(`Attempting to add category: ${categoryName}`);
       // Check if the category exists *for the current user*
@@ -625,7 +713,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
       // Get the current number of categories to determine the new order_index
       const newOrderIndex = currentCategories.length;
-      const newCategory = { name: categoryName, user_id: loggedInUserId };
+      const newCategory = {
+        name: categoryName,
+        user_id: loggedInUserId,
+        icon_class: categoryIcon,
+        icon_enabled: !!categoryIcon,
+      };
       if (isOrderIndexSupported) {
         newCategory.order_index = newOrderIndex;
       }
@@ -1172,6 +1265,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     );
     const addCategoryBtn = document.getElementById('add-category-btn');
     const shareMenuBtn = document.getElementById('share-menu-btn'); // Get the new button
+    const editCoverPhotoBtn = document.getElementById('edit-cover-photo-btn');
 
     const addItemContainer = document.getElementById('add-item-container');
     const editItemContainer = document.getElementById('edit-item-container');
@@ -1184,6 +1278,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const addItemModal = document.getElementById('add-item-modal'); // Get the add item modal overlay
     const addCategoryModal = document.getElementById('add-category-modal'); // Get the add category modal overlay
     const editInfoModal = document.getElementById('edit-info-modal'); // Get the edit info modal overlay
+    const editCoverPhotoModal = document.getElementById('edit-cover-photo-modal');
     const shareMenuModal = document.getElementById('share-menu-modal'); // Get share menu modal
     const shareLinkMessage = document.getElementById('share-link-message'); // Get the share link message element
     const generateQrBtn = document.getElementById('generate-qr-btn'); // Get the generate QR button
@@ -1202,9 +1297,11 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const editItemFormElement = document.getElementById('edit-item-form');
     const addCategoryFormElement = document.getElementById('add-category-form');
     const editInfoFormElement = document.getElementById('edit-info-form'); // Get the edit info form
+    const editCoverPhotoFormElement = document.getElementById('edit-cover-photo-form');
     const editPhoneNumberInput = document.getElementById('edit-phone-number'); // Get the phone number input
     const editAreaInput = document.getElementById('edit-area'); // Get the area input
     const editInfoCancelBtn = document.getElementById('cancel-edit-info-btn'); // Get the cancel button
+    const editCoverPhotoCancelBtn = document.getElementById('cancel-edit-cover-photo-btn');
     const editBackgroundInput = document.getElementById(
       'edit-background-color',
     ); // Get background color input
@@ -1248,6 +1345,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       console.error('Edit info modal close button or modal not found');
     }
 
+    if (editCoverPhotoCancelBtn && editCoverPhotoModal) {
+      editCoverPhotoCancelBtn.addEventListener('click', () => {
+        editCoverPhotoModal.classList.remove('visible'); // Hide the modal
+      });
+    }
+
     function hideAllSections() {
       console.log('Hiding all sections');
       // Removed hiding addItemContainer as it's part of the modal
@@ -1286,6 +1389,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     if (userProfile) {
       const restaurantNameElement = document.querySelector('.restaurant-name');
       const logoElement = document.querySelector('.logo');
+      const coverPhotoElement = document.getElementById('cover-photo');
 
       if (restaurantNameElement) {
         restaurantNameElement.textContent =
@@ -1295,6 +1399,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       // Apply fetched background color on page load
       if (userProfile.background_color) {
         document.body.style.backgroundColor = userProfile.background_color;
+      }
+
+      if (userProfile.cover_photo_url) {
+        coverPhotoElement.style.backgroundImage = `url('${getProfileLogoPublicUrl(
+          userProfile.cover_photo_url,
+        )}')`;
       }
 
       if (restaurantNameElement) {
@@ -1483,6 +1593,17 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       console.error('Add category button or container not found');
     }
 
+    if (editCoverPhotoBtn && editCoverPhotoModal) {
+      editCoverPhotoBtn.addEventListener('click', () => {
+        console.log('Edit Cover Photo button clicked');
+        hideAllSections();
+        editCoverPhotoModal.style.display = 'flex';
+        setTimeout(() => {
+          editCoverPhotoModal.classList.add('visible');
+        }, 10);
+      });
+    }
+
     if (editItemsBtn && menuGrid) {
       // Check for menuGrid instead of list container/ul
       editItemsBtn.addEventListener('click', () => {
@@ -1494,6 +1615,19 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         // Hide other forms if entering edit mode
         if (isEditMode) {
           hideAllSections();
+          if (isMenuItemOrderIndexSupported) {
+            menuItemsSortable = new Sortable(menuGrid, {
+              animation: 300,
+              delay: 200,
+              touchStartThreshold: 5,
+              onEnd: updateMenuItemOrder,
+            });
+          }
+        } else {
+          if (menuItemsSortable) {
+            menuItemsSortable.destroy();
+            menuItemsSortable = null;
+          }
         }
 
         // Re-render the category navigation to show/hide delete icons
@@ -1544,11 +1678,28 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         });
       }
 
+      const iconPicker = document.getElementById('icon-picker-container');
+      const categoryIconInput = document.getElementById('category-icon');
+
+      iconPicker.addEventListener('click', (event) => {
+        if (event.target.classList.contains('icon-picker-icon')) {
+          // Remove selected class from all icons
+          iconPicker.querySelectorAll('.icon-picker-icon').forEach((icon) => {
+            icon.classList.remove('selected');
+          });
+          // Add selected class to the clicked icon
+          event.target.classList.add('selected');
+          // Set the value of the hidden input
+          categoryIconInput.value = event.target.dataset.icon;
+        }
+      });
+
       addCategoryFormElement.addEventListener('submit', async (event) => {
         event.preventDefault();
         console.log('Add category form submitted (via click or touchend)');
         const categoryNameInput = document.getElementById('category-name');
         const categoryName = categoryNameInput.value.trim();
+        const categoryIcon = categoryIconInput.value;
         console.log('Attempting to add category:', categoryName);
 
         if (categoryName) {
@@ -1557,7 +1708,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           );
           if (loadingIndicator) loadingIndicator.classList.add('visible');
 
-          const success = await addCategory(categoryName);
+          const success = await addCategory(categoryName, categoryIcon);
 
           if (loadingIndicator) loadingIndicator.classList.remove('visible');
 
@@ -1652,6 +1803,65 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       });
     } else {
       console.error('DEBUG: Add item form not found');
+    }
+
+    if (editCoverPhotoFormElement) {
+      editCoverPhotoFormElement.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        console.log('Edit cover photo form submitted');
+
+        const newCoverPhotoFile = document.getElementById('edit-cover-photo').files[0];
+        let newCoverPhotoPath = null;
+
+        if (newCoverPhotoFile) {
+          const fileExt = newCoverPhotoFile.name.split('.').pop();
+          const uniqueFileName = `cover-photos/${loggedInUserId}-${Date.now()}.${fileExt}`;
+
+          const uploadParams = {
+            Bucket: CLOUDFLARE_BUCKET_NAME_MENU,
+            Key: uniqueFileName,
+            Body: newCoverPhotoFile,
+            ContentType: newCoverPhotoFile.type,
+          };
+
+          try {
+            const uploadResult = await r2ClientMenu
+              .upload(uploadParams)
+              .promise();
+            newCoverPhotoPath = uploadResult.Key;
+          } catch (error) {
+            handleError(error, 'Failed to upload new cover photo');
+            return;
+          }
+        }
+
+        const updates = {};
+
+        if (newCoverPhotoPath) {
+          updates.cover_photo_url = newCoverPhotoPath;
+        }
+
+        const success = await updateUserProfile(updates);
+
+        if (success) {
+          showToast('Cover photo updated successfully!');
+          editCoverPhotoFormElement.reset();
+          if (editCoverPhotoModal) editCoverPhotoModal.classList.remove('visible');
+
+          // Update the UI
+          const userProfile = await getUserProfile(loggedInUserId);
+          if (userProfile) {
+            const coverPhotoElement = document.getElementById('cover-photo');
+            if (coverPhotoElement && userProfile.cover_photo_url) {
+              coverPhotoElement.style.backgroundImage = `url('${getProfileLogoPublicUrl(
+                userProfile.cover_photo_url,
+              )}')`;
+            }
+          }
+        } else {
+          showToast('Failed to update cover photo.');
+        }
+      });
     }
 
     // --- Share Menu Button Listener ---
@@ -1782,6 +1992,15 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                 userProfile.background_color || '#808080'; // Default grey
             if (editItemColorInput)
               editItemColorInput.value = userProfile.item_color || '#666666'; // Default grey
+            if (document.getElementById('edit-item-name-color'))
+              document.getElementById('edit-item-name-color').value =
+                userProfile.item_name_color || '#ffffff';
+            if (document.getElementById('edit-item-price-color'))
+              document.getElementById('edit-item-price-color').value =
+                userProfile.item_price_color || '#ffffff';
+            if (document.getElementById('edit-item-description-color'))
+              document.getElementById('edit-item-description-color').value =
+                userProfile.item_description_color || '#ffffff';
           } else {
             console.warn(
               'Could not fetch user profile to populate edit info modal.',
@@ -1858,6 +2077,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
             .value,
           item_price_color: document.getElementById('edit-item-price-color')
             .value,
+          item_description_color: document.getElementById(
+            'edit-item-description-color',
+          ).value,
         };
 
         if (newLogoPath) {
@@ -1894,6 +2116,12 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
             document.querySelectorAll('.item-price').forEach((priceElement) => {
               priceElement.style.color = userProfile.item_price_color;
             });
+            document
+              .querySelectorAll('.item-description')
+              .forEach((descriptionElement) => {
+                descriptionElement.style.color =
+                  userProfile.item_description_color;
+              });
             document.getElementById('restaurant-phone-number').textContent =
               userProfile.phone_number || '';
             document.getElementById('restaurant-area').textContent =

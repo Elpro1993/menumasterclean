@@ -33,9 +33,23 @@
       }
 
       .header {
-        background-color: #666666;
+        background-color: transparent; /* Make header transparent to see cover photo */
+        position: relative;
+        z-index: 1;
         padding: 1rem 2rem;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .cover-photo {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        z-index: -1;
+        opacity: 1;
       }
 
       .logo-container {
@@ -529,6 +543,7 @@
         }
       }
     </style>
+    
     <link
       href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
       rel="stylesheet"
@@ -542,6 +557,7 @@
   </head>
   <body>
     <header class="header">
+      <div id="cover-photo" class="cover-photo"></div>
       <div class="logo-container">
         <img src="" alt="Restaurant Logo" class="logo" id="restaurant-logo" />
         <h1 class="restaurant-name" id="restaurant-name"></h1>
@@ -556,6 +572,9 @@
         <button class="action-btn" id="add-category-btn">Add Category</button>
         <button class="action-btn" id="share-menu-btn">Share Menu</button>
         <button class="action-btn" id="edit-info-btn">Edit Info</button>
+        <button class="action-btn" id="edit-cover-photo-btn">
+          Edit Cover Photo
+        </button>
       </div>
     </header>
 
@@ -594,6 +613,41 @@
             autocomplete="off"
             required
           /><br />
+          <label for="category-icon">Choose an icon:</label><br />
+          <div id="icon-picker-container">
+            <i
+              class="fas fa-utensils icon-picker-icon"
+              data-icon="fa-utensils"
+            ></i>
+            <i
+              class="fas fa-hamburger icon-picker-icon"
+              data-icon="fa-hamburger"
+            ></i>
+            <i
+              class="fas fa-pizza-slice icon-picker-icon"
+              data-icon="fa-pizza-slice"
+            ></i>
+            <i class="fas fa-coffee icon-picker-icon" data-icon="fa-coffee"></i>
+            <i
+              class="fas fa-cocktail icon-picker-icon"
+              data-icon="fa-cocktail"
+            ></i>
+            <i
+              class="fas fa-ice-cream icon-picker-icon"
+              data-icon="fa-ice-cream"
+            ></i>
+            <i class="fas fa-fish icon-picker-icon" data-icon="fa-fish"></i>
+            <i class="fas fa-leaf icon-picker-icon" data-icon="fa-leaf"></i>
+            <i
+              class="fas fa-birthday-cake icon-picker-icon"
+              data-icon="fa-birthday-cake"
+            ></i>
+            <i
+              class="fas fa-wine-glass-alt icon-picker-icon"
+              data-icon="fa-wine-glass-alt"
+            ></i>
+          </div>
+          <input type="hidden" id="category-icon" name="category-icon" />
           <button type="submit">Add Category</button>
           <div id="add-category-loading-indicator" class="loading-indicator">
             <div class="spinner"></div>
@@ -778,8 +832,39 @@
             value="#ffffff"
           /><br />
 
+          <label for="edit-item-description-color"
+            >Description Text Color:</label
+          ><br />
+          <input
+            type="color"
+            id="edit-item-description-color"
+            name="edit-item-description-color"
+            value="#ffffff"
+          /><br />
+
           <button type="submit">Save Info</button>
           <button type="button" class="cancel-btn" id="cancel-edit-info-btn">
+            Cancel
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Edit Cover Photo Modal -->
+    <div id="edit-cover-photo-modal" class="modal-overlay">
+      <div id="edit-cover-photo-container" class="modal-content">
+        <h2>Edit Cover Photo</h2>
+        <form id="edit-cover-photo-form">
+          <label for="edit-cover-photo">Cover Photo:</label><br />
+          <input
+            type="file"
+            id="edit-cover-photo"
+            name="edit-cover-photo"
+            accept="image/*"
+          /><br />
+
+          <button type="submit">Save Cover Photo</button>
+          <button type="button" class="cancel-btn" id="cancel-edit-cover-photo-btn">
             Cancel
           </button>
         </form>
