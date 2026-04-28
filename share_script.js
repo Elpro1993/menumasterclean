@@ -14,6 +14,54 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let currentCategories = []; // Holds the current categories fetched from DB
   let ownerUserId = null; // Holds the ID of the owner whose menu is being displayed
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
+  let currentLanguage = 'en';
+
+  const translations = {
+    en: {
+      all: 'All',
+      noItemsInCategory: 'No items found in this category.',
+      unnamedItem: 'Unnamed Item',
+      noDescription: 'No description available.',
+      restaurantMenu: 'Restaurant Menu',
+    },
+    ar: {
+      all: 'الكل',
+      noItemsInCategory: 'لا توجد أصناف في هذه الفئة.',
+      unnamedItem: 'صنف بدون اسم',
+      noDescription: 'لا يوجد وصف.',
+      restaurantMenu: 'قائمة المطعم',
+    },
+  };
+
+  function t(key) {
+    return translations[currentLanguage]?.[key] || translations.en[key] || key;
+  }
+
+  function getCategoryDisplayName(category) {
+    if (currentLanguage === 'ar' && category?.name_ar) return category.name_ar;
+    return category?.name || '';
+  }
+
+  function getItemDisplayName(item) {
+    if (currentLanguage === 'ar' && item?.name_ar) return item.name_ar;
+    return item?.name || t('unnamedItem');
+  }
+
+  function getItemDisplayDescription(item) {
+    if (currentLanguage === 'ar' && item?.description_ar)
+      return item.description_ar;
+    return item?.description || t('noDescription');
+  }
+
+  function applyLanguageUi() {
+    const languageToggleBtn = document.getElementById('language-toggle-btn');
+    if (languageToggleBtn) {
+      languageToggleBtn.textContent = currentLanguage === 'en' ? 'AR' : 'EN';
+    }
+    const allBtn = document.querySelector('.category-btn[data-category-key="All"]');
+    if (allBtn) allBtn.textContent = t('all');
+    document.documentElement.lang = currentLanguage === 'ar' ? 'ar' : 'en';
+  }
 
   // Centralized error handling
   function handleError(error, message) {
@@ -183,13 +231,13 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       : '';
 
     card.innerHTML = `
-            <img src="${imageUrl}" alt="${item.name}" class="item-image" onerror="this.onerror=null;this.src='placeholder.png';">
+            <img src="${imageUrl}" alt="${getItemDisplayName(item)}" class="item-image" onerror="this.onerror=null;this.src='placeholder.png';">
             <div class="item-content">
-                <h3 class="item-name" ${itemNameStyle}>${item.name || 'Unnamed Item'}</h3>
+                <h3 class="item-name" ${itemNameStyle}>${getItemDisplayName(item)}</h3>
                 <div class="item-header">
                     <span class="item-price" ${itemPriceStyle}>${item.price ? '$' + parseFloat(item.price).toFixed(2) : 'N/A'}</span>
                 </div>
-                <p class="item-description" ${itemDescriptionStyle}>${item.description || 'No description available.'}</p>
+                <p class="item-description" ${itemDescriptionStyle}>${getItemDisplayDescription(item)}</p>
                 <div class="expand-indicator">
                     <i class="fas fa-chevron-down"></i>
                 </div>
@@ -229,7 +277,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     );
 
     if (filteredItems.length === 0) {
-      menuGrid.innerHTML = '<p>No items found in this category.</p>';
+      menuGrid.innerHTML = `<p>${t('noItemsInCategory')}</p>`;
     } else {
       filteredItems.forEach((item) => {
         menuGrid.appendChild(createMenuItemCard(item, profileColors));
@@ -255,7 +303,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     // Add 'All' button
     const allButton = document.createElement('button');
     allButton.className = 'category-btn active';
-    allButton.textContent = 'All';
+    allButton.dataset.categoryKey = 'All';
+    allButton.textContent = t('all');
     allButton.onclick = () => {
       document
         .querySelectorAll('.category-btn')
@@ -269,12 +318,15 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     categories.forEach((category) => {
       const categoryButton = document.createElement('button');
       categoryButton.className = 'category-btn';
+      categoryButton.dataset.categoryKey = category.name;
       if (category.icon_enabled && category.icon_class) {
         const icon = document.createElement('i');
         icon.className = `fas ${category.icon_class}`;
         categoryButton.prepend(icon);
       }
-      categoryButton.appendChild(document.createTextNode(category.name));
+      categoryButton.appendChild(
+        document.createTextNode(getCategoryDisplayName(category)),
+      );
       categoryButton.onclick = () => {
         document
           .querySelectorAll('.category-btn')
@@ -292,6 +344,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const menuGrid = document.querySelector('.menu-grid');
     const restaurantNameElement = document.getElementById('restaurant-name');
     const restaurantLogoElement = document.getElementById('restaurant-logo');
+    const languageToggleBtn = document.getElementById('language-toggle-btn');
+    applyLanguageUi();
 
     console.log('Elements selected:', {
       menuGrid,
@@ -331,7 +385,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     if (profileData) {
       restaurantNameElement.textContent =
-        profileData.restaurant_name || 'Restaurant Menu';
+        profileData.restaurant_name || t('restaurantMenu');
 
       // Apply fetched colors
       if (profileData.background_color) {
@@ -384,6 +438,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     } else {
       console.log('No profile data found.');
       restaurantNameElement.textContent = 'Restaurant Menu'; // Default name if profile fails
+      restaurantNameElement.textContent = t('restaurantMenu');
       restaurantLogoElement.alt = 'Restaurant Logo'; // Keep placeholder image src
     }
 
@@ -403,6 +458,30 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       profileData,
     );
     filterMenuItems('All', currentMenuItems, menuGrid, profileData); // Display 'All' items initially
+
+    if (languageToggleBtn) {
+      languageToggleBtn.addEventListener('click', () => {
+        currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+        applyLanguageUi();
+        addCategoriesToNav(
+          currentCategories,
+          currentMenuItems,
+          menuGrid,
+          profileData,
+        );
+        const activeCategoryButton = document.querySelector(
+          '.category-nav .category-scroll .category-btn.active',
+        );
+        const activeCategory =
+          activeCategoryButton?.dataset.categoryKey || 'All';
+        filterMenuItems(
+          activeCategory,
+          currentMenuItems,
+          menuGrid,
+          profileData,
+        );
+      });
+    }
 
     // Apply item color after menu items are rendered
     if (profileData && profileData.item_color) {

@@ -567,20 +567,21 @@
         <span id="restaurant-area"></span>
       </div>
       <div class="action-buttons">
-        <button class="action-btn" id="add-item-btn">Add Item</button>
-        <button class="action-btn" id="edit-items-btn">Edit Items</button>
-        <button class="action-btn" id="add-category-btn">Add Category</button>
-        <button class="action-btn" id="share-menu-btn">Share Menu</button>
-        <button class="action-btn" id="edit-info-btn">Edit Info</button>
-        <button class="action-btn" id="edit-cover-photo-btn">
+        <button class="action-btn" id="add-item-btn" data-i18n="addItem">Add Item</button>
+        <button class="action-btn" id="edit-items-btn" data-i18n="editItems">Edit Items</button>
+        <button class="action-btn" id="add-category-btn" data-i18n="addCategory">Add Category</button>
+        <button class="action-btn" id="share-menu-btn" data-i18n="shareMenu">Share Menu</button>
+        <button class="action-btn" id="edit-info-btn" data-i18n="editInfo">Edit Info</button>
+        <button class="action-btn" id="edit-cover-photo-btn" data-i18n="editCoverPhoto">
           Edit Cover Photo
         </button>
+        <button class="action-btn" id="language-toggle-btn">AR</button>
       </div>
     </header>
 
     <nav class="category-nav">
       <div class="category-scroll">
-        <button class="category-btn active">All</button>
+        <button class="category-btn active" data-category-key="All" data-i18n="all">All</button>
         <!-- Categories populated by JS -->
       </div>
     </nav>
@@ -603,15 +604,22 @@
     <div id="add-category-modal" class="modal-overlay">
       <div id="add-category-container" class="modal-content">
         <button class="close-btn" aria-label="Close">&times;</button>
-        <h2>Add New Category</h2>
+        <h2 data-i18n="addNewCategory">Add New Category</h2>
         <form id="add-category-form">
-          <label for="category-name">Category Name:</label><br />
+          <label for="category-name" data-i18n="categoryName">Category Name:</label><br />
           <input
             type="text"
             id="category-name"
             name="category-name"
             autocomplete="off"
             required
+          /><br />
+          <label for="category-name-ar" data-i18n="categoryNameArabic">Category Name (Arabic):</label><br />
+          <input
+            type="text"
+            id="category-name-ar"
+            name="category-name-ar"
+            autocomplete="off"
           /><br />
           <label for="category-icon">Choose an icon:</label><br />
           <div id="icon-picker-container">
@@ -648,7 +656,7 @@
             ></i>
           </div>
           <input type="hidden" id="category-icon" name="category-icon" />
-          <button type="submit">Add Category</button>
+          <button type="submit" data-i18n="addCategory">Add Category</button>
           <div id="add-category-loading-indicator" class="loading-indicator">
             <div class="spinner"></div>
             <span id="add-category-loading-text">Adding category...</span>
@@ -662,15 +670,22 @@
     <div id="add-item-modal" class="modal-overlay">
       <div id="add-item-container" class="modal-content">
         <button class="close-btn" aria-label="Close">&times;</button>
-        <h2>Add New Item</h2>
+        <h2 data-i18n="addNewItem">Add New Item</h2>
         <form id="add-item-form">
-          <label for="name">Name:</label><br />
+          <label for="name" data-i18n="name">Name:</label><br />
           <input
             type="text"
             id="name"
             name="name"
             autocomplete="name"
             required
+          /><br />
+          <label for="name-ar" data-i18n="nameArabic">Name (Arabic):</label><br />
+          <input
+            type="text"
+            id="name-ar"
+            name="name-ar"
+            autocomplete="off"
           /><br />
           <label for="price">Price:</label><br />
           <input
@@ -691,14 +706,14 @@
           <label for="image">Image File:</label><br />
           <input type="file" id="image" name="image" accept="image/*" /><br />
           <!-- Changed type to file -->
-          <label for="description">Description:</label><br />
+          <label for="description" data-i18n="description">Description:</label><br />
           <textarea
             id="description"
             name="description"
             autocomplete="off"
           ></textarea
           ><br />
-          <button type="submit">Add Item</button>
+          <button type="submit" data-i18n="addItem">Add Item</button>
         </form>
       </div>
     </div>

@@ -41,6 +41,83 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
   let loggedInUserId = null; // Holds the ID of the currently logged-in user
   let menuItemsSortable = null; // Holds the Sortable instance for menu items
+  let currentLanguage = 'en';
+
+  const translations = {
+    en: {
+      addItem: 'Add Item',
+      editItems: 'Edit Items',
+      finishEditing: 'Finish Editing',
+      addCategory: 'Add Category',
+      shareMenu: 'Share Menu',
+      editInfo: 'Edit Info',
+      editCoverPhoto: 'Edit Cover Photo',
+      all: 'All',
+      addNewCategory: 'Add New Category',
+      categoryName: 'Category Name:',
+      categoryNameArabic: 'Category Name (Arabic):',
+      addNewItem: 'Add New Item',
+      name: 'Name:',
+      nameArabic: 'Name (Arabic):',
+      description: 'Description:',
+      descriptionArabic: 'Description (Arabic):',
+    },
+    ar: {
+      addItem: 'اضافة صنف',
+      editItems: 'تعديل الاصناف',
+      finishEditing: 'انهاء التعديل',
+      addCategory: 'اضافة فئة',
+      shareMenu: 'مشاركة المنيو',
+      editInfo: 'تعديل المعلومات',
+      editCoverPhoto: 'تعديل صورة الغلاف',
+      all: 'الكل',
+      addNewCategory: 'اضافة فئة جديدة',
+      categoryName: 'اسم الفئة:',
+      categoryNameArabic: 'اسم الفئة بالعربية:',
+      addNewItem: 'اضافة صنف جديد',
+      name: 'الاسم:',
+      nameArabic: 'الاسم بالعربية:',
+      description: 'الوصف:',
+      descriptionArabic: 'الوصف بالعربية:',
+    },
+  };
+
+  function t(key) {
+    return translations[currentLanguage]?.[key] || translations.en[key] || key;
+  }
+
+  function getCategoryDisplayName(category) {
+    if (currentLanguage === 'ar' && category?.name_ar) {
+      return category.name_ar;
+    }
+    return category?.name || '';
+  }
+
+  function getItemDisplayName(item) {
+    if (currentLanguage === 'ar' && item?.name_ar) {
+      return item.name_ar;
+    }
+    return item?.name || 'Unnamed Item';
+  }
+
+  function getItemDisplayDescription(item) {
+    if (currentLanguage === 'ar' && item?.description_ar) {
+      return item.description_ar;
+    }
+    return item?.description || 'No description available.';
+  }
+
+  function applyStaticTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      const key = el.dataset.i18n;
+      if (key) el.textContent = t(key);
+    });
+    const languageToggleBtn = document.getElementById('language-toggle-btn');
+    if (languageToggleBtn) {
+      languageToggleBtn.textContent = currentLanguage === 'en' ? 'AR' : 'EN';
+    }
+    document.documentElement.lang = currentLanguage === 'ar' ? 'ar' : 'en';
+  }
 
   // Centralized error handling
   function handleError(error, message) {
@@ -289,7 +366,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const categoryOptions = categories
         .map(
           (cat) =>
-            `<option value="${cat.name}" ${item.category === cat.name ? 'selected' : ''}>${cat.name}</option>`,
+            `<option value="${cat.name}" ${item.category === cat.name ? 'selected' : ''}>${getCategoryDisplayName(cat)}</option>`,
         )
         .join('');
 
@@ -302,6 +379,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                 <div class="item-content">
                     <div class="item-header">
                         <input type="text" class="edit-name-input" value="${item.name || ''}" placeholder="Item Name" required>
+                        <input type="text" class="edit-name-ar-input" value="${item.name_ar || ''}" placeholder="Item Name (Arabic)">
                         <input type="number" class="edit-price-input" value="${item.price ? (item.price % 1 === 0 ? item.price : parseFloat(item.price).toFixed(2)) : ''}" step="0.01" placeholder="Price" required>
                         <select class="edit-currency-select" required>
                             ${currentCurrencies.map((c) => `<option value="${c.id}" ${item.currency_id === c.id ? 'selected' : ''}>${c.code} (${c.symbol})</option>`).join('')}
@@ -311,6 +389,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                         ${categoryOptions.length > 0 ? categoryOptions : '<option value="">-- No Categories --</option>'}
                     </select>
                     <textarea class="edit-description-textarea" placeholder="Description">${item.description || ''}</textarea>
+                    <textarea class="edit-description-ar-textarea" placeholder="Description (Arabic)">${item.description_ar || ''}</textarea>
                     <div class="edit-actions">
                         <button class="save-item-btn">Save</button>
                         <button class="cancel-edit-btn">Cancel</button>
@@ -354,18 +433,18 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       card.innerHTML = `
 <img src="${imageUrl}?width=300&height=180&quality=80&format=webp" 
      srcset="${imageUrl}?width=600&quality=80&format=webp 2x"
-     alt="${item.name}" 
+     alt="${getItemDisplayName(item)}" 
      class="item-image" 
      loading="lazy" 
      width="300" 
      height="180"
      onerror="this.onerror=null;this.src='placeholder.png';">
                 <div class="item-content">
-                    <h3 class="item-name">${item.name || 'Unnamed Item'}</h3>
+                    <h3 class="item-name">${getItemDisplayName(item)}</h3>
                     <div class="item-header">
                         <span class="item-price">${currentCurrencies.find((c) => c.id === item.currency_id)?.symbol || '$'}${item.price ? (item.price % 1 === 0 ? item.price : parseFloat(item.price).toFixed(2)) : 'N/A'}</span>
                     </div>
-                    <p class="item-description">${item.description || 'No description available.'}</p>
+                    <p class="item-description">${getItemDisplayDescription(item)}</p>
                     <div class="expand-indicator">
                         <i class="fas fa-chevron-down"></i>
                     </div>
@@ -416,7 +495,10 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     );
 
     if (filteredItems.length === 0) {
-      menuGrid.innerHTML = '<p>No items found in this category.</p>';
+      menuGrid.innerHTML =
+        currentLanguage === 'ar'
+          ? '<p>لا توجد أصناف في هذه الفئة.</p>'
+          : '<p>No items found in this category.</p>';
     } else {
       filteredItems.forEach((item) => {
         // Pass the edit mode state to the card creation function
@@ -465,7 +547,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
         // Re-render items to reflect the change in edit mode status
         filterMenuItems(
-          document.querySelector('.category-btn.active')?.textContent || 'All',
+          document.querySelector('.category-btn.active')?.dataset
+            .categoryKey || 'All',
           currentMenuItems,
           menuGrid,
           isEditMode,
@@ -536,7 +619,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     const allButton = document.createElement('button');
     allButton.className = 'category-btn active';
-    allButton.textContent = 'All';
+    allButton.dataset.categoryKey = 'All';
+    allButton.textContent = t('all');
     allButton.onclick = () => {
       document
         .querySelectorAll('.category-btn')
@@ -555,8 +639,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     categories.forEach((category) => {
       const categoryButton = document.createElement('button');
       categoryButton.className = 'category-btn';
-      categoryButton.textContent = category.name; // Set initial text content
+      categoryButton.textContent = getCategoryDisplayName(category); // Set initial text content
       categoryButton.dataset.categoryId = category.id; // Store category ID for drag-and-drop
+      categoryButton.dataset.categoryKey = category.name;
 
       if (category.icon_enabled && category.icon_class) {
         const icon = document.createElement('i');
@@ -641,7 +726,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     categories.forEach((cat) => {
       const option = document.createElement('option');
       option.value = cat.name;
-      option.textContent = cat.name;
+      option.textContent = getCategoryDisplayName(cat);
       if (
         (selectedValue && cat.name === selectedValue) ||
         (!selectedValue && cat.name === currentVal)
@@ -694,7 +779,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   }
 
   // --- CRUD Functions ---
-  async function addCategory(categoryName, categoryIcon) {
+  async function addCategory(categoryName, categoryIcon, categoryNameArabic) {
     try {
       console.log(`Attempting to add category: ${categoryName}`);
       // Check if the category exists *for the current user*
@@ -715,6 +800,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const newOrderIndex = currentCategories.length;
       const newCategory = {
         name: categoryName,
+        name_ar: categoryNameArabic || null,
         user_id: loggedInUserId,
         icon_class: categoryIcon,
         icon_enabled: !!categoryIcon,
@@ -843,9 +929,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const activeCategoryButton = document.querySelector(
         '.category-nav .category-scroll .category-btn.active',
       );
-      const activeCategory = activeCategoryButton
-        ? activeCategoryButton.textContent
-        : 'All';
+      const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
       filterMenuItems(
         activeCategory,
         updatedItems,
@@ -976,9 +1060,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const activeCategoryButton = document.querySelector(
         '.category-nav .category-scroll .category-btn.active',
       );
-      const activeCategory = activeCategoryButton
-        ? activeCategoryButton.textContent
-        : 'All';
+      const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
       // Now filter using the mutated global currentMenuItems
       filterMenuItems(
         activeCategory,
@@ -1015,16 +1097,24 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const descriptionTextarea = cardElement.querySelector(
       '.edit-description-textarea',
     );
+    const descriptionArTextarea = cardElement.querySelector(
+      '.edit-description-ar-textarea',
+    );
+    const nameArInput = cardElement.querySelector('.edit-name-ar-input');
     const imageInput = cardElement.querySelector('.edit-image-input');
 
     const newImageFile = imageInput.files[0]; // Get the new file, if any
 
     const updatedData = {
       name: nameInput.value.trim(),
+      name_ar: nameArInput ? nameArInput.value.trim() : '',
       price: priceInput.value, // Validation happens in editMenuItem
       currency_id: currencySelect.value, // Changed to currency_id
       category: categorySelect.value,
       description: descriptionTextarea.value.trim(),
+      description_ar: descriptionArTextarea
+        ? descriptionArTextarea.value.trim()
+        : '',
       // image path is handled by editMenuItem based on newImageFile
     };
 
@@ -1144,9 +1234,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const activeCategoryButton = document.querySelector(
         '.category-nav .category-scroll .category-btn.active',
       );
-      const activeCategory = activeCategoryButton
-        ? activeCategoryButton.textContent
-        : 'All';
+      const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
       filterMenuItems(
         activeCategory,
         currentMenuItems,
@@ -1255,6 +1343,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const menuGrid = document.querySelector('.menu-grid');
     const addItemBtn = document.getElementById('add-item-btn');
     const editItemsBtn = document.getElementById('edit-items-btn');
+    const languageToggleBtn = document.getElementById('language-toggle-btn');
 
     // Fetch currencies on load
     console.log('DEBUG: Fetching currencies in DOMContentLoaded...');
@@ -1310,6 +1399,30 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const editItemCurrencySelect = document.getElementById('edit-currency'); // Get the currency select for edit item
 
     const menuItemsListUl = document.getElementById('menu-items-list');
+    applyStaticTranslations();
+
+    const rerenderForLanguage = async () => {
+      applyStaticTranslations();
+      currentCategories = await getCategories();
+      populateCategoryDropdown(document.getElementById('category'), currentCategories);
+      populateCategoryDropdown(document.getElementById('edit-category'), currentCategories);
+      await addCategoriesToNav(currentCategories, currentMenuItems, menuGrid);
+      const activeCategoryButton = document.querySelector(
+        '.category-nav .category-scroll .category-btn.active',
+      );
+      const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
+      filterMenuItems(activeCategory, currentMenuItems, menuGrid, isEditMode, currentCategories);
+      if (editItemsBtn) {
+        editItemsBtn.textContent = isEditMode ? t('finishEditing') : t('editItems');
+      }
+    };
+
+    if (languageToggleBtn) {
+      languageToggleBtn.addEventListener('click', async () => {
+        currentLanguage = currentLanguage === 'en' ? 'ar' : 'en';
+        await rerenderForLanguage();
+      });
+    }
 
     // --- Modal Close Button Handlers ---
     const addItemCloseBtn = addItemModal
@@ -1609,7 +1722,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       editItemsBtn.addEventListener('click', () => {
         isEditMode = !isEditMode; // Toggle edit mode state
         console.log(`Edit mode toggled: ${isEditMode}`);
-        editItemsBtn.textContent = isEditMode ? 'Finish Editing' : 'Edit Items';
+        editItemsBtn.textContent = isEditMode
+          ? t('finishEditing')
+          : t('editItems');
         editItemsBtn.classList.toggle('active', isEditMode); // Optional: style the button when active
 
         // Hide other forms if entering edit mode
@@ -1637,9 +1752,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         const activeCategoryButton = document.querySelector(
           '.category-nav .category-scroll .category-btn.active',
         );
-        const activeCategory = activeCategoryButton
-          ? activeCategoryButton.textContent
-          : 'All';
+        const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
         // Pass the isEditMode state and categories to filterMenuItems
         filterMenuItems(
           activeCategory,
@@ -1699,6 +1812,11 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         console.log('Add category form submitted (via click or touchend)');
         const categoryNameInput = document.getElementById('category-name');
         const categoryName = categoryNameInput.value.trim();
+        const categoryNameArabicInput =
+          document.getElementById('category-name-ar');
+        const categoryNameArabic = categoryNameArabicInput
+          ? categoryNameArabicInput.value.trim()
+          : '';
         const categoryIcon = categoryIconInput.value;
         console.log('Attempting to add category:', categoryName);
 
@@ -1708,7 +1826,11 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           );
           if (loadingIndicator) loadingIndicator.classList.add('visible');
 
-          const success = await addCategory(categoryName, categoryIcon);
+          const success = await addCategory(
+            categoryName,
+            categoryIcon,
+            categoryNameArabic,
+          );
 
           if (loadingIndicator) loadingIndicator.classList.remove('visible');
 
@@ -1762,6 +1884,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
         const newItemData = {
           name: document.getElementById('name').value.trim(),
+          name_ar: document.getElementById('name-ar')?.value.trim() || '',
           price: document.getElementById('price').value,
           category: document.getElementById('category').value,
           currency_id: document.getElementById('currency').value, // Get selected currency ID
