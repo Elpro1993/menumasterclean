@@ -41,7 +41,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
   let loggedInUserId = null; // Holds the ID of the currently logged-in user
   let menuItemsSortable = null; // Holds the Sortable instance for menu items
-  let currentLanguage = 'en';
+  let currentLanguage = 'ar';
+  let currentUserProfile = null; // Cache profile/theme data for rerenders
 
   const translations = {
     en: {
@@ -101,9 +102,6 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   }
 
   function getItemDisplayDescription(item) {
-    if (currentLanguage === 'ar' && item?.description_ar) {
-      return item.description_ar;
-    }
     return item?.description || 'No description available.';
   }
 
@@ -117,6 +115,73 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       languageToggleBtn.textContent = currentLanguage === 'en' ? 'AR' : 'EN';
     }
     document.documentElement.lang = currentLanguage === 'ar' ? 'ar' : 'en';
+  }
+
+  function refreshAddItemFormLabels() {
+    const nameLabel = document.querySelector('label[for="name"]');
+    if (nameLabel) {
+      nameLabel.textContent = 'Food Item Name';
+      nameLabel.style.display = 'block';
+      nameLabel.style.position = 'static';
+      nameLabel.style.marginBottom = '6px';
+    }
+    const nameArabicLabel = document.querySelector('label[for="name-ar"]');
+    if (nameArabicLabel) {
+      nameArabicLabel.textContent = t('nameArabic');
+    }
+    const descriptionLabel = document.querySelector('label[for="description"]');
+    if (descriptionLabel) {
+      descriptionLabel.textContent = t('description');
+    }
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+      nameInput.placeholder = 'Food Item Name';
+      nameInput.setAttribute('aria-label', 'Food Item Name');
+    }
+  }
+
+  function applyProfileTheme(profile) {
+    if (!profile) return;
+
+    if (profile.background_color) {
+      document.body.style.backgroundColor = profile.background_color;
+    }
+
+    if (profile.item_color) {
+      document.querySelectorAll('.menu-item').forEach((item) => {
+        item.style.backgroundColor = profile.item_color;
+      });
+    }
+
+    if (profile.item_name_color) {
+      document.querySelectorAll('.item-name').forEach((nameElement) => {
+        nameElement.style.color = profile.item_name_color;
+      });
+      document.querySelectorAll('.category-group-title').forEach((title) => {
+        title.style.color = profile.item_name_color;
+      });
+    }
+
+    if (profile.item_price_color) {
+      document.querySelectorAll('.item-price').forEach((priceElement) => {
+        priceElement.style.color = profile.item_price_color;
+      });
+    }
+
+    if (profile.item_description_color) {
+      document
+        .querySelectorAll('.item-description')
+        .forEach((descriptionElement) => {
+          descriptionElement.style.color = profile.item_description_color;
+        });
+    }
+
+    if (profile.category_background_color) {
+      const categoryNav = document.querySelector('.category-nav');
+      if (categoryNav) {
+        categoryNav.style.backgroundColor = profile.category_background_color;
+      }
+    }
   }
 
   // Centralized error handling
@@ -307,7 +372,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const { data, error } = await supabaseClient
       .from('profiles')
       .select(
-        'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, cover_photo_url',
+        'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, category_background_color, cover_photo_url',
       ) // Select the required fields including new colors
       .eq('id', userId) // Filter by user ID
       .single(); // Expecting a single profile per user
@@ -389,7 +454,6 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                         ${categoryOptions.length > 0 ? categoryOptions : '<option value="">-- No Categories --</option>'}
                     </select>
                     <textarea class="edit-description-textarea" placeholder="Description">${item.description || ''}</textarea>
-                    <textarea class="edit-description-ar-textarea" placeholder="Description (Arabic)">${item.description_ar || ''}</textarea>
                     <div class="edit-actions">
                         <button class="save-item-btn">Save</button>
                         <button class="cancel-edit-btn">Cancel</button>
@@ -477,11 +541,11 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     forceEditMode = false,
     categories = [],
   ) {
-    // Add categories parameter
     if (!menuGrid) {
       console.error('Menu grid not found!');
       return;
     }
+    menuGrid.classList.remove('all-grouped-view');
     menuGrid.innerHTML = '';
     const filteredItems =
       category === 'All'
@@ -497,17 +561,59 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     if (filteredItems.length === 0) {
       menuGrid.innerHTML =
         currentLanguage === 'ar'
-          ? '<p>لا توجد أصناف في هذه الفئة.</p>'
+          ? '<p>Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£ØµÙ†Ø§Ù ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„ÙØ¦Ø©.</p>'
           : '<p>No items found in this category.</p>';
-    } else {
-      filteredItems.forEach((item) => {
-        // Pass the edit mode state to the card creation function
-        // Pass the edit mode state and categories to the card creation function
-        menuGrid.appendChild(
-          createMenuItemCard(item, forceEditMode, categories),
-        );
-      });
+      if (currentUserProfile) applyProfileTheme(currentUserProfile);
+      return;
     }
+
+    if (category === 'All') {
+      menuGrid.classList.add('all-grouped-view');
+      const groupedItems = new Map();
+      filteredItems.forEach((item) => {
+        const key = item.category || '__uncategorized__';
+        if (!groupedItems.has(key)) groupedItems.set(key, []);
+        groupedItems.get(key).push(item);
+      });
+
+      const categoryByName = new Map(categories.map((cat) => [cat.name, cat]));
+      const orderedKeys = [];
+
+      categories.forEach((cat) => {
+        if (groupedItems.has(cat.name)) orderedKeys.push(cat.name);
+      });
+      groupedItems.forEach((_, key) => {
+        if (!orderedKeys.includes(key)) orderedKeys.push(key);
+      });
+
+      orderedKeys.forEach((groupKey) => {
+        const title = document.createElement('h2');
+        title.className = 'category-group-title';
+        if (groupKey === '__uncategorized__') {
+          title.textContent =
+            currentLanguage === 'ar' ? 'غير مصنف' : 'Uncategorized';
+        } else {
+          const categoryMeta = categoryByName.get(groupKey);
+          title.textContent = categoryMeta
+            ? getCategoryDisplayName(categoryMeta)
+            : groupKey;
+        }
+        menuGrid.appendChild(title);
+
+        groupedItems.get(groupKey).forEach((item) => {
+          menuGrid.appendChild(
+            createMenuItemCard(item, forceEditMode, categories),
+          );
+        });
+      });
+      if (currentUserProfile) applyProfileTheme(currentUserProfile);
+      return;
+    }
+
+    filteredItems.forEach((item) => {
+      menuGrid.appendChild(createMenuItemCard(item, forceEditMode, categories));
+    });
+    if (currentUserProfile) applyProfileTheme(currentUserProfile);
   }
 
   async function addCategoriesToNav(categories, currentMenuItems, menuGrid) {
@@ -688,6 +794,10 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
       categoryScroll.appendChild(categoryButton); // Append the button directly
     });
+
+    if (currentUserProfile) {
+      applyProfileTheme(currentUserProfile);
+    }
 
     if (isCategoryEditMode && isOrderIndexSupported) {
       new Sortable(categoryScroll, {
@@ -1097,9 +1207,6 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const descriptionTextarea = cardElement.querySelector(
       '.edit-description-textarea',
     );
-    const descriptionArTextarea = cardElement.querySelector(
-      '.edit-description-ar-textarea',
-    );
     const nameArInput = cardElement.querySelector('.edit-name-ar-input');
     const imageInput = cardElement.querySelector('.edit-image-input');
 
@@ -1112,9 +1219,6 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       currency_id: currencySelect.value, // Changed to currency_id
       category: categorySelect.value,
       description: descriptionTextarea.value.trim(),
-      description_ar: descriptionArTextarea
-        ? descriptionArTextarea.value.trim()
-        : '',
       // image path is handled by editMenuItem based on newImageFile
     };
 
@@ -1395,6 +1499,14 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       'edit-background-color',
     ); // Get background color input
     const editItemColorInput = document.getElementById('edit-item-color'); // Get item color input
+    const editItemNameColorInput = document.getElementById('edit-item-name-color');
+    const editItemPriceColorInput = document.getElementById('edit-item-price-color');
+    const editItemDescriptionColorInput = document.getElementById(
+      'edit-item-description-color',
+    );
+    const editCategoryBackgroundColorInput = document.getElementById(
+      'edit-category-background-color',
+    );
     const addItemCurrencySelect = document.getElementById('currency'); // Get the currency select for add item
     const editItemCurrencySelect = document.getElementById('edit-currency'); // Get the currency select for edit item
 
@@ -1403,6 +1515,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     const rerenderForLanguage = async () => {
       applyStaticTranslations();
+      refreshAddItemFormLabels();
       currentCategories = await getCategories();
       populateCategoryDropdown(document.getElementById('category'), currentCategories);
       populateCategoryDropdown(document.getElementById('edit-category'), currentCategories);
@@ -1412,6 +1525,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       );
       const activeCategory = activeCategoryButton?.dataset.categoryKey || 'All';
       filterMenuItems(activeCategory, currentMenuItems, menuGrid, isEditMode, currentCategories);
+      applyProfileTheme(currentUserProfile);
       if (editItemsBtn) {
         editItemsBtn.textContent = isEditMode ? t('finishEditing') : t('editItems');
       }
@@ -1499,6 +1613,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     // --- Fetch and display restaurant profile ---
     const userProfile = await getUserProfile(loggedInUserId);
+    currentUserProfile = userProfile;
     if (userProfile) {
       const restaurantNameElement = document.querySelector('.restaurant-name');
       const logoElement = document.querySelector('.logo');
@@ -1509,10 +1624,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           userProfile.restaurant_name || 'Your Restaurant';
       }
 
-      // Apply fetched background color on page load
-      if (userProfile.background_color) {
-        document.body.style.backgroundColor = userProfile.background_color;
-      }
+      // Apply fetched background color/theme on page load
+      applyProfileTheme(userProfile);
 
       if (userProfile.cover_photo_url) {
         coverPhotoElement.style.backgroundImage = `url('${getProfileLogoPublicUrl(
@@ -1604,25 +1717,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
             getUserProfile(loggedInUserId)
               .then((profile) => {
                 if (profile) {
-                  if (profile.item_color) {
-                    document.querySelectorAll('.menu-item').forEach((item) => {
-                      item.style.backgroundColor = profile.item_color;
-                    });
-                  }
-                  if (profile.item_name_color) {
-                    document
-                      .querySelectorAll('.item-name')
-                      .forEach((nameElement) => {
-                        nameElement.style.color = profile.item_name_color;
-                      });
-                  }
-                  if (profile.item_price_color) {
-                    document
-                      .querySelectorAll('.item-price')
-                      .forEach((priceElement) => {
-                        priceElement.style.color = profile.item_price_color;
-                      });
-                  }
+                  currentUserProfile = profile;
+                  applyProfileTheme(profile);
                 }
               })
               .catch((error) => {
@@ -1669,10 +1765,15 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       addItemBtn.addEventListener('click', () => {
         console.log('Add item button clicked');
         hideAllSections();
+        addItemModal.scrollTop = 0;
+        addItemContainer.scrollTop = 0;
+        if (addItemFormElement) addItemFormElement.scrollTop = 0;
         addItemModal.style.display = 'flex';
         setTimeout(() => {
           addItemModal.classList.add('visible');
+          refreshAddItemFormLabels();
         }, 10);
+        refreshAddItemFormLabels();
         populateCategoryDropdown(
           document.getElementById('category'),
           currentCategories,
@@ -2124,6 +2225,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
             if (document.getElementById('edit-item-description-color'))
               document.getElementById('edit-item-description-color').value =
                 userProfile.item_description_color || '#ffffff';
+            if (document.getElementById('edit-category-background-color'))
+              document.getElementById('edit-category-background-color').value =
+                userProfile.category_background_color || '#666666';
           } else {
             console.warn(
               'Could not fetch user profile to populate edit info modal.',
@@ -2203,6 +2307,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           item_description_color: document.getElementById(
             'edit-item-description-color',
           ).value,
+          category_background_color: document.getElementById(
+            'edit-category-background-color',
+          ).value,
         };
 
         if (newLogoPath) {
@@ -2219,6 +2326,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           // Update the UI
           const userProfile = await getUserProfile(loggedInUserId);
           if (userProfile) {
+            currentUserProfile = userProfile;
             const restaurantNameElement =
               document.querySelector('.restaurant-name');
             const logoElement = document.querySelector('.logo');
@@ -2229,22 +2337,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
             if (logoElement) {
               logoElement.src = getProfileLogoPublicUrl(userProfile.logo_url);
             }
-            document.body.style.backgroundColor = userProfile.background_color;
-            document.querySelectorAll('.menu-item').forEach((item) => {
-              item.style.backgroundColor = userProfile.item_color;
-            });
-            document.querySelectorAll('.item-name').forEach((nameElement) => {
-              nameElement.style.color = userProfile.item_name_color;
-            });
-            document.querySelectorAll('.item-price').forEach((priceElement) => {
-              priceElement.style.color = userProfile.item_price_color;
-            });
-            document
-              .querySelectorAll('.item-description')
-              .forEach((descriptionElement) => {
-                descriptionElement.style.color =
-                  userProfile.item_description_color;
-              });
+            applyProfileTheme(userProfile);
             document.getElementById('restaurant-phone-number').textContent =
               userProfile.phone_number || '';
             document.getElementById('restaurant-area').textContent =
@@ -2396,3 +2489,5 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     });
   }); // End DOMContentLoaded
 } // End Supabase check else block
+
+

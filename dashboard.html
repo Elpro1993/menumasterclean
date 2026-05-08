@@ -482,9 +482,59 @@
           touch-action: manipulation;
         }
 
-        .modal-content button[type='submit']:hover {
-          background-color: #45a049;
-        }
+      .modal-content button[type='submit']:hover {
+        background-color: #45a049;
+      }
+
+      /* Keep the first Add Item label from shifting upward */
+      #add-item-container h2 {
+        margin-bottom: 0.9rem;
+      }
+
+      #add-item-container {
+        padding-top: 3rem;
+      }
+
+      #add-item-container .close-btn {
+        top: 12px;
+        right: 14px;
+      }
+
+      #add-item-form {
+        margin-top: 0.5rem;
+      }
+
+      #add-item-form label[for='name'] {
+        display: block;
+        margin-top: 0.4rem;
+        margin-bottom: 0.25rem;
+        line-height: 1.35;
+      }
+
+      #add-item-form .field-row {
+        display: block;
+        margin-bottom: 0.65rem;
+      }
+
+      #add-item-form .field-row > br {
+        display: none;
+      }
+
+      #add-item-form .field-row label {
+        display: block;
+        margin: 0 0 0.25rem;
+      }
+
+      #edit-info-form .color-setting-group {
+        padding: 0.45rem 0;
+      }
+
+      #edit-info-form .color-separator {
+        border: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.35);
+        margin: 0.35rem 0;
+      }
+
 
         .close-btn {
           position: absolute;
@@ -672,14 +722,16 @@
         <button class="close-btn" aria-label="Close">&times;</button>
         <h2 data-i18n="addNewItem">Add New Item</h2>
         <form id="add-item-form">
-          <label for="name" data-i18n="name">Name:</label><br />
-          <input
-            type="text"
-            id="name"
-            name="name"
-            autocomplete="name"
-            required
-          /><br />
+          <div class="field-row">
+            <label for="name">Food Item Name</label><br />
+            <input
+              type="text"
+              id="name"
+              name="name"
+              autocomplete="name"
+              required
+            /><br />
+          </div>
           <label for="name-ar" data-i18n="nameArabic">Name (Arabic):</label><br />
           <input
             type="text"
@@ -815,47 +867,74 @@
             required
           /><br />
 
-          <label for="edit-background-color">Background Color:</label><br />
-          <input
-            type="color"
-            id="edit-background-color"
-            name="edit-background-color"
-            value="#808080"
-          /><br />
+          <div class="color-setting-group">
+            <label for="edit-background-color">Background Color:</label><br />
+            <input
+              type="color"
+              id="edit-background-color"
+              name="edit-background-color"
+              value="#808080"
+            /><br />
+          </div>
+          <hr class="color-separator" />
 
-          <label for="edit-item-color">Item Background Color:</label><br />
-          <input
-            type="color"
-            id="edit-item-color"
-            name="edit-item-color"
-            value="#666666"
-          /><br />
+          <div class="color-setting-group">
+            <label for="edit-item-color">Item Background Color:</label><br />
+            <input
+              type="color"
+              id="edit-item-color"
+              name="edit-item-color"
+              value="#666666"
+            /><br />
+          </div>
+          <hr class="color-separator" />
 
-          <label for="edit-item-name-color">Food Name Text Color:</label><br />
-          <input
-            type="color"
-            id="edit-item-name-color"
-            name="edit-item-name-color"
-            value="#ffffff"
-          /><br />
+          <div class="color-setting-group">
+            <label for="edit-item-name-color">Food Name Text Color:</label><br />
+            <input
+              type="color"
+              id="edit-item-name-color"
+              name="edit-item-name-color"
+              value="#ffffff"
+            /><br />
+          </div>
+          <hr class="color-separator" />
 
-          <label for="edit-item-price-color">Price Text Color:</label><br />
-          <input
-            type="color"
-            id="edit-item-price-color"
-            name="edit-item-price-color"
-            value="#ffffff"
-          /><br />
+          <div class="color-setting-group">
+            <label for="edit-item-price-color">Price Text Color:</label><br />
+            <input
+              type="color"
+              id="edit-item-price-color"
+              name="edit-item-price-color"
+              value="#ffffff"
+            /><br />
+          </div>
+          <hr class="color-separator" />
 
-          <label for="edit-item-description-color"
-            >Description Text Color:</label
-          ><br />
-          <input
-            type="color"
-            id="edit-item-description-color"
-            name="edit-item-description-color"
-            value="#ffffff"
-          /><br />
+          <div class="color-setting-group">
+            <label for="edit-item-description-color"
+              >Description Text Color:</label
+            ><br />
+            <input
+              type="color"
+              id="edit-item-description-color"
+              name="edit-item-description-color"
+              value="#ffffff"
+            /><br />
+          </div>
+          <hr class="color-separator" />
+
+          <div class="color-setting-group">
+            <label for="edit-category-background-color"
+              >Category Bar Background Color:</label
+            ><br />
+            <input
+              type="color"
+              id="edit-category-background-color"
+              name="edit-category-background-color"
+              value="#666666"
+            /><br />
+          </div>
 
           <button type="submit">Save Info</button>
           <button type="button" class="cancel-btn" id="cancel-edit-info-btn">

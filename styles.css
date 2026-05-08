@@ -635,3 +635,21 @@ body {
 .loading-indicator p {
   margin-top: 15px;
 }
+.category-group-title {
+  grid-column: 1 / -1;
+  margin: 0.75rem 0 0.25rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.menu-grid > .category-group-title:first-child {
+  margin-top: -8px;
+}
+
+.menu-grid.all-grouped-view {
+  padding-top: 0;
+}

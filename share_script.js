@@ -14,7 +14,8 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let currentCategories = []; // Holds the current categories fetched from DB
   let ownerUserId = null; // Holds the ID of the owner whose menu is being displayed
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
-  let currentLanguage = 'en';
+  let currentLanguage = 'ar';
+  let currentProfileData = null; // Cache profile/theme data for rerenders
 
   const translations = {
     en: {
@@ -48,8 +49,6 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   }
 
   function getItemDisplayDescription(item) {
-    if (currentLanguage === 'ar' && item?.description_ar)
-      return item.description_ar;
     return item?.description || t('noDescription');
   }
 
@@ -61,6 +60,50 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const allBtn = document.querySelector('.category-btn[data-category-key="All"]');
     if (allBtn) allBtn.textContent = t('all');
     document.documentElement.lang = currentLanguage === 'ar' ? 'ar' : 'en';
+  }
+
+  function applyProfileTheme(profile) {
+    if (!profile) return;
+
+    if (profile.background_color) {
+      document.body.style.backgroundColor = profile.background_color;
+    }
+
+    if (profile.item_color) {
+      document.querySelectorAll('.menu-item').forEach((item) => {
+        item.style.backgroundColor = profile.item_color;
+      });
+    }
+
+    if (profile.item_name_color) {
+      document.querySelectorAll('.item-name').forEach((nameElement) => {
+        nameElement.style.color = profile.item_name_color;
+      });
+      document.querySelectorAll('.category-group-title').forEach((title) => {
+        title.style.color = profile.item_name_color;
+      });
+    }
+
+    if (profile.item_price_color) {
+      document.querySelectorAll('.item-price').forEach((priceElement) => {
+        priceElement.style.color = profile.item_price_color;
+      });
+    }
+
+    if (profile.item_description_color) {
+      document
+        .querySelectorAll('.item-description')
+        .forEach((descriptionElement) => {
+          descriptionElement.style.color = profile.item_description_color;
+        });
+    }
+
+    if (profile.category_background_color) {
+      const categoryNav = document.querySelector('.category-nav');
+      if (categoryNav) {
+        categoryNav.style.backgroundColor = profile.category_background_color;
+      }
+    }
   }
 
   // Centralized error handling
@@ -190,7 +233,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const { data, error, status } = await supabaseClient
         .from('profiles') // Assuming a 'profiles' table
         .select(
-          'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, cover_photo_url',
+          'restaurant_name, logo_url, phone_number, area, background_color, item_color, item_name_color, item_price_color, item_description_color, category_background_color, cover_photo_url',
         ) // Select the relevant columns including colors
         .eq('id', userId) // Filter by the user's ID
         .single(); // Expect only one profile per user
@@ -264,6 +307,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       console.error('Menu grid not found!');
       return;
     }
+    menuGrid.classList.remove('all-grouped-view');
     menuGrid.innerHTML = '';
     const filteredItems =
       category === 'All'
@@ -278,11 +322,57 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     if (filteredItems.length === 0) {
       menuGrid.innerHTML = `<p>${t('noItemsInCategory')}</p>`;
-    } else {
-      filteredItems.forEach((item) => {
-        menuGrid.appendChild(createMenuItemCard(item, profileColors));
-      });
+      applyProfileTheme(profileColors || currentProfileData);
+      return;
     }
+
+    if (category === 'All') {
+      menuGrid.classList.add('all-grouped-view');
+      const groupedItems = new Map();
+      filteredItems.forEach((item) => {
+        const key = item.category || '__uncategorized__';
+        if (!groupedItems.has(key)) groupedItems.set(key, []);
+        groupedItems.get(key).push(item);
+      });
+
+      const categoryByName = new Map(
+        currentCategories.map((cat) => [cat.name, cat]),
+      );
+      const orderedKeys = [];
+
+      currentCategories.forEach((cat) => {
+        if (groupedItems.has(cat.name)) orderedKeys.push(cat.name);
+      });
+      groupedItems.forEach((_, key) => {
+        if (!orderedKeys.includes(key)) orderedKeys.push(key);
+      });
+
+      orderedKeys.forEach((groupKey) => {
+        const title = document.createElement('h2');
+        title.className = 'category-group-title';
+        if (groupKey === '__uncategorized__') {
+          title.textContent =
+            currentLanguage === 'ar' ? 'غير مصنف' : 'Uncategorized';
+        } else {
+          const categoryMeta = categoryByName.get(groupKey);
+          title.textContent = categoryMeta
+            ? getCategoryDisplayName(categoryMeta)
+            : groupKey;
+        }
+        menuGrid.appendChild(title);
+
+        groupedItems.get(groupKey).forEach((item) => {
+          menuGrid.appendChild(createMenuItemCard(item, profileColors));
+        });
+      });
+      applyProfileTheme(profileColors || currentProfileData);
+      return;
+    }
+
+    filteredItems.forEach((item) => {
+      menuGrid.appendChild(createMenuItemCard(item, profileColors));
+    });
+    applyProfileTheme(profileColors || currentProfileData);
   }
 
   function addCategoriesToNav(
@@ -336,6 +426,10 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       };
       categoryScroll.appendChild(categoryButton);
     });
+
+    if (currentProfileData) {
+      applyProfileTheme(currentProfileData);
+    }
   }
 
   // --- Initialization ---
@@ -381,16 +475,15 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     // Fetch and display restaurant profile info
     const profileData = await getRestaurantProfile(ownerUserId);
+    currentProfileData = profileData;
     console.log('Fetched profile data:', profileData);
 
     if (profileData) {
       restaurantNameElement.textContent =
         profileData.restaurant_name || t('restaurantMenu');
 
-      // Apply fetched colors
-      if (profileData.background_color) {
-        document.body.style.backgroundColor = profileData.background_color;
-      }
+      // Apply fetched colors/theme
+      applyProfileTheme(profileData);
       if (profileData.cover_photo_url) {
         const coverPhotoElement = document.getElementById('cover-photo');
         if (coverPhotoElement) {
@@ -480,22 +573,13 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           menuGrid,
           profileData,
         );
+        applyProfileTheme(currentProfileData);
       });
     }
 
-    // Apply item color after menu items are rendered
-    if (profileData && profileData.item_color) {
-      document.querySelectorAll('.menu-item').forEach((item) => {
-        item.style.backgroundColor = profileData.item_color;
-      });
-    }
-    if (profileData && profileData.item_description_color) {
-      document
-        .querySelectorAll('.item-description')
-        .forEach((descriptionElement) => {
-          descriptionElement.style.color = profileData.item_description_color;
-        });
-    }
+    // Apply colors after first menu render
+    applyProfileTheme(currentProfileData);
     console.log('Share script DOMContentLoaded finished.');
   });
 }
+
