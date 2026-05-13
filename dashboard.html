@@ -525,6 +525,28 @@
         margin: 0 0 0.25rem;
       }
 
+      #add-item-form .price-size-row {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.6rem;
+        margin-bottom: 0.65rem;
+      }
+
+      #add-item-form .price-size-col label {
+        display: block;
+        margin: 0 0 0.25rem;
+      }
+
+      #add-item-form .price-size-col input {
+        margin-bottom: 0;
+      }
+
+      @media (max-width: 640px) {
+        #add-item-form .price-size-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
       #edit-info-form .color-setting-group {
         padding: 0.45rem 0;
       }
@@ -704,6 +726,16 @@
               class="fas fa-wine-glass-alt icon-picker-icon"
               data-icon="fa-wine-glass-alt"
             ></i>
+            <img class="icon-picker-image" src="category-icons/bbq-equipment.png" data-icon="category-icons/bbq-equipment.png" alt="BBQ icon" />
+            <img class="icon-picker-image" src="category-icons/chinese-food.png" data-icon="category-icons/chinese-food.png" alt="Chinese food icon" />
+            <img class="icon-picker-image" src="category-icons/coffee.png" data-icon="category-icons/coffee.png" alt="Coffee icon" />
+            <img class="icon-picker-image" src="category-icons/fast-food.png" data-icon="category-icons/fast-food.png" alt="Fast food icon" />
+            <img class="icon-picker-image" src="category-icons/food-tray.png" data-icon="category-icons/food-tray.png" alt="Food tray icon" />
+            <img class="icon-picker-image" src="category-icons/hot-chocolate.png" data-icon="category-icons/hot-chocolate.png" alt="Hot chocolate icon" />
+            <img class="icon-picker-image" src="category-icons/orange-juice.png" data-icon="category-icons/orange-juice.png" alt="Orange juice icon" />
+            <img class="icon-picker-image" src="category-icons/pizza.png" data-icon="category-icons/pizza.png" alt="Pizza icon" />
+            <img class="icon-picker-image" src="category-icons/salad.png" data-icon="category-icons/salad.png" alt="Salad icon" />
+            <img class="icon-picker-image" src="category-icons/vegetable.png" data-icon="category-icons/vegetable.png" alt="Vegetable icon" />
           </div>
           <input type="hidden" id="category-icon" name="category-icon" />
           <button type="submit" data-i18n="addCategory">Add Category</button>
@@ -739,15 +771,38 @@
             name="name-ar"
             autocomplete="off"
           /><br />
-          <label for="price">Price:</label><br />
-          <input
-            type="number"
-            id="price"
-            name="price"
-            autocomplete="off"
-            step="0.01"
-            required
-          /><br />
+          <div class="price-size-row">
+            <div class="price-size-col">
+              <label for="price-small">Price (Small):</label>
+              <input
+                type="number"
+                id="price-small"
+                name="price-small"
+                autocomplete="off"
+                step="0.01"
+              />
+            </div>
+            <div class="price-size-col">
+              <label for="price-medium">Price (Medium):</label>
+              <input
+                type="number"
+                id="price-medium"
+                name="price-medium"
+                autocomplete="off"
+                step="0.01"
+              />
+            </div>
+            <div class="price-size-col">
+              <label for="price-large">Price (Large):</label>
+              <input
+                type="number"
+                id="price-large"
+                name="price-large"
+                autocomplete="off"
+                step="0.01"
+              />
+            </div>
+          </div>
           <label for="currency">Currency:</label><br />
           <select id="currency" name="currency" required></select
           ><br />
@@ -795,14 +850,29 @@
           autocomplete="name"
           required
         /><br />
-        <label for="edit-price">Price:</label><br />
+        <label for="edit-price-small">Price (Small):</label><br />
         <input
           type="number"
-          id="edit-price"
-          name="edit-price"
+          id="edit-price-small"
+          name="edit-price-small"
           autocomplete="off"
           step="0.01"
-          required
+        /><br />
+        <label for="edit-price-medium">Price (Medium):</label><br />
+        <input
+          type="number"
+          id="edit-price-medium"
+          name="edit-price-medium"
+          autocomplete="off"
+          step="0.01"
+        /><br />
+        <label for="edit-price-large">Price (Large):</label><br />
+        <input
+          type="number"
+          id="edit-price-large"
+          name="edit-price-large"
+          autocomplete="off"
+          step="0.01"
         /><br />
         <label for="edit-currency">Currency:</label><br />
         <select id="edit-currency" name="edit-currency" required></select

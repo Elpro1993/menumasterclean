@@ -41,7 +41,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
   let loggedInUserId = null; // Holds the ID of the currently logged-in user
   let menuItemsSortable = null; // Holds the Sortable instance for menu items
-  let currentLanguage = 'ar';
+  let currentLanguage = 'en';
   let currentUserProfile = null; // Cache profile/theme data for rerenders
 
   const translations = {
@@ -103,6 +103,37 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
   function getItemDisplayDescription(item) {
     return item?.description || 'No description available.';
+  }
+
+  function formatPriceValue(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const num = parseFloat(value);
+    if (isNaN(num)) return null;
+    return num % 1 === 0 ? `${num}` : num.toFixed(2);
+  }
+
+  function buildItemPriceDisplay(item, currencySymbol = '$') {
+    const sizes = [
+      { label: 'Small', value: formatPriceValue(item?.price_small) },
+      { label: 'Medium', value: formatPriceValue(item?.price_medium) },
+      { label: 'Large', value: formatPriceValue(item?.price_large) },
+    ].filter((s) => s.value !== null);
+
+    if (sizes.length === 0) {
+      const legacyPrice = formatPriceValue(item?.price);
+      return legacyPrice ? `${currencySymbol}${legacyPrice}` : 'N/A';
+    }
+
+    if (sizes.length === 1) {
+      return `${currencySymbol}${sizes[0].value}`;
+    }
+
+    return sizes
+      .map(
+        (s) =>
+          `<span class="item-price-line">${s.label}: ${currencySymbol}${s.value}</span>`,
+      )
+      .join('');
   }
 
   function applyStaticTranslations() {
@@ -445,7 +476,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                     <div class="item-header">
                         <input type="text" class="edit-name-input" value="${item.name || ''}" placeholder="Item Name" required>
                         <input type="text" class="edit-name-ar-input" value="${item.name_ar || ''}" placeholder="Item Name (Arabic)">
-                        <input type="number" class="edit-price-input" value="${item.price ? (item.price % 1 === 0 ? item.price : parseFloat(item.price).toFixed(2)) : ''}" step="0.01" placeholder="Price" required>
+                        <input type="number" class="edit-price-small-input" value="${formatPriceValue(item.price_small) || ''}" step="0.01" placeholder="Price (Small)">
+                        <input type="number" class="edit-price-medium-input" value="${formatPriceValue(item.price_medium) || ''}" step="0.01" placeholder="Price (Medium)">
+                        <input type="number" class="edit-price-large-input" value="${formatPriceValue(item.price_large) || ''}" step="0.01" placeholder="Price (Large)">
                         <select class="edit-currency-select" required>
                             ${currentCurrencies.map((c) => `<option value="${c.id}" ${item.currency_id === c.id ? 'selected' : ''}>${c.code} (${c.symbol})</option>`).join('')}
                         </select>
@@ -506,7 +539,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
                 <div class="item-content">
                     <h3 class="item-name">${getItemDisplayName(item)}</h3>
                     <div class="item-header">
-                        <span class="item-price">${currentCurrencies.find((c) => c.id === item.currency_id)?.symbol || '$'}${item.price ? (item.price % 1 === 0 ? item.price : parseFloat(item.price).toFixed(2)) : 'N/A'}</span>
+                        <span class="item-price">${buildItemPriceDisplay(item, currentCurrencies.find((c) => c.id === item.currency_id)?.symbol || '$')}</span>
                     </div>
                     <p class="item-description">${getItemDisplayDescription(item)}</p>
                     <div class="expand-indicator">
@@ -750,9 +783,17 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       categoryButton.dataset.categoryKey = category.name;
 
       if (category.icon_enabled && category.icon_class) {
-        const icon = document.createElement('i');
-        icon.className = `fas ${category.icon_class}`;
-        categoryButton.prepend(icon);
+        if (category.icon_class.startsWith('category-icons/')) {
+          const icon = document.createElement('img');
+          icon.src = category.icon_class;
+          icon.alt = `${category.name} icon`;
+          icon.className = 'category-custom-icon';
+          categoryButton.prepend(icon);
+        } else {
+          const icon = document.createElement('i');
+          icon.className = `fas ${category.icon_class}`;
+          categoryButton.prepend(icon);
+        }
       }
 
       if (isCategoryEditMode) {
@@ -970,9 +1011,27 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     try {
       console.log('Attempting to add menu item:', itemData);
-      itemData.price = parseFloat(itemData.price);
-      if (isNaN(itemData.price))
-        throw new Error('Price must be a valid number.');
+      itemData.price_small =
+        itemData.price_small === '' ? null : parseFloat(itemData.price_small);
+      itemData.price_medium =
+        itemData.price_medium === '' ? null : parseFloat(itemData.price_medium);
+      itemData.price_large =
+        itemData.price_large === '' ? null : parseFloat(itemData.price_large);
+      const hasAtLeastOnePrice =
+        itemData.price_small !== null ||
+        itemData.price_medium !== null ||
+        itemData.price_large !== null;
+      if (!hasAtLeastOnePrice) {
+        throw new Error('At least one size price is required.');
+      }
+      if (
+        (itemData.price_small !== null && isNaN(itemData.price_small)) ||
+        (itemData.price_medium !== null && isNaN(itemData.price_medium)) ||
+        (itemData.price_large !== null && isNaN(itemData.price_large))
+      ) {
+        throw new Error('Size prices must be valid numbers.');
+      }
+      itemData.price = itemData.price_small ?? itemData.price_medium ?? itemData.price_large;
       if (!itemData.currency_id) throw new Error('Currency must be selected.'); // Check for currency_id
 
       let imagePath = null;
@@ -1081,9 +1140,27 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const originalItem = currentMenuItems[index]; // Keep track of the original item
       console.log(`Attempting to edit menu item ID: ${itemId}`, itemData);
 
-      itemData.price = parseFloat(itemData.price);
-      if (isNaN(itemData.price))
-        throw new Error('Price must be a valid number.');
+      itemData.price_small =
+        itemData.price_small === '' ? null : parseFloat(itemData.price_small);
+      itemData.price_medium =
+        itemData.price_medium === '' ? null : parseFloat(itemData.price_medium);
+      itemData.price_large =
+        itemData.price_large === '' ? null : parseFloat(itemData.price_large);
+      const hasAtLeastOnePrice =
+        itemData.price_small !== null ||
+        itemData.price_medium !== null ||
+        itemData.price_large !== null;
+      if (!hasAtLeastOnePrice) {
+        throw new Error('At least one size price is required.');
+      }
+      if (
+        (itemData.price_small !== null && isNaN(itemData.price_small)) ||
+        (itemData.price_medium !== null && isNaN(itemData.price_medium)) ||
+        (itemData.price_large !== null && isNaN(itemData.price_large))
+      ) {
+        throw new Error('Size prices must be valid numbers.');
+      }
+      itemData.price = itemData.price_small ?? itemData.price_medium ?? itemData.price_large;
 
       let newImagePath = originalItem.image; // Default to original image path
       let oldImagePathToDelete = null;
@@ -1201,7 +1278,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   async function handleSaveItem(cardElement, itemId) {
     console.log(`Attempting to save item ID: ${itemId}`);
     const nameInput = cardElement.querySelector('.edit-name-input');
-    const priceInput = cardElement.querySelector('.edit-price-input');
+    const priceSmallInput = cardElement.querySelector('.edit-price-small-input');
+    const priceMediumInput = cardElement.querySelector('.edit-price-medium-input');
+    const priceLargeInput = cardElement.querySelector('.edit-price-large-input');
     const currencySelect = cardElement.querySelector('.edit-currency-select');
     const categorySelect = cardElement.querySelector('.edit-category-select');
     const descriptionTextarea = cardElement.querySelector(
@@ -1215,7 +1294,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const updatedData = {
       name: nameInput.value.trim(),
       name_ar: nameArInput ? nameArInput.value.trim() : '',
-      price: priceInput.value, // Validation happens in editMenuItem
+      price_small: priceSmallInput ? priceSmallInput.value : '',
+      price_medium: priceMediumInput ? priceMediumInput.value : '',
+      price_large: priceLargeInput ? priceLargeInput.value : '',
       currency_id: currencySelect.value, // Changed to currency_id
       category: categorySelect.value,
       description: descriptionTextarea.value.trim(),
@@ -1225,16 +1306,30 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     // Basic validation
     if (
       !updatedData.name ||
-      !updatedData.price ||
       !updatedData.currency_id ||
       !updatedData.category
     ) {
       // Changed to currency_id
-      showToast('Please fill in Name, Price, Currency, and Category.');
+      showToast('Please fill in Name, Currency, and Category.');
       return;
     }
-    if (isNaN(parseFloat(updatedData.price))) {
-      showToast('Price must be a valid number.');
+    const hasAtLeastOnePrice =
+      updatedData.price_small !== '' ||
+      updatedData.price_medium !== '' ||
+      updatedData.price_large !== '';
+    if (!hasAtLeastOnePrice) {
+      showToast('Please add at least one price (Small, Medium, or Large).');
+      return;
+    }
+    if (
+      (updatedData.price_small !== '' &&
+        isNaN(parseFloat(updatedData.price_small))) ||
+      (updatedData.price_medium !== '' &&
+        isNaN(parseFloat(updatedData.price_medium))) ||
+      (updatedData.price_large !== '' &&
+        isNaN(parseFloat(updatedData.price_large)))
+    ) {
+      showToast('Size prices must be valid numbers.');
       return;
     }
 
@@ -1896,11 +1991,16 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       const categoryIconInput = document.getElementById('category-icon');
 
       iconPicker.addEventListener('click', (event) => {
-        if (event.target.classList.contains('icon-picker-icon')) {
+        if (
+          event.target.classList.contains('icon-picker-icon') ||
+          event.target.classList.contains('icon-picker-image')
+        ) {
           // Remove selected class from all icons
-          iconPicker.querySelectorAll('.icon-picker-icon').forEach((icon) => {
-            icon.classList.remove('selected');
-          });
+          iconPicker
+            .querySelectorAll('.icon-picker-icon, .icon-picker-image')
+            .forEach((icon) => {
+              icon.classList.remove('selected');
+            });
           // Add selected class to the clicked icon
           event.target.classList.add('selected');
           // Set the value of the hidden input
@@ -1986,7 +2086,9 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
         const newItemData = {
           name: document.getElementById('name').value.trim(),
           name_ar: document.getElementById('name-ar')?.value.trim() || '',
-          price: document.getElementById('price').value,
+          price_small: document.getElementById('price-small')?.value || '',
+          price_medium: document.getElementById('price-medium')?.value || '',
+          price_large: document.getElementById('price-large')?.value || '',
           category: document.getElementById('category').value,
           currency_id: document.getElementById('currency').value, // Get selected currency ID
           description: document.getElementById('description').value.trim(),
@@ -1995,18 +2097,32 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
         if (
           !newItemData.name ||
-          !newItemData.price ||
           !newItemData.category ||
           !newItemData.currency_id
         ) {
-          showToast('Please fill in Name, Price, Category, and Currency.');
+          showToast('Please fill in Name, Category, and Currency.');
           console.log(
             'DEBUG: Add item form validation failed: missing fields.',
           );
           return;
         }
-        if (isNaN(parseFloat(newItemData.price))) {
-          showToast('Price must be a valid number.');
+        const hasAtLeastOnePrice =
+          newItemData.price_small !== '' ||
+          newItemData.price_medium !== '' ||
+          newItemData.price_large !== '';
+        if (!hasAtLeastOnePrice) {
+          showToast('Please add at least one price (Small, Medium, or Large).');
+          return;
+        }
+        if (
+          (newItemData.price_small !== '' &&
+            isNaN(parseFloat(newItemData.price_small))) ||
+          (newItemData.price_medium !== '' &&
+            isNaN(parseFloat(newItemData.price_medium))) ||
+          (newItemData.price_large !== '' &&
+            isNaN(parseFloat(newItemData.price_large)))
+        ) {
+          showToast('Size prices must be valid numbers.');
           console.log('DEBUG: Add item form validation failed: invalid price.');
           return;
         }
@@ -2369,7 +2485,18 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
           // Populate edit form
           document.getElementById('edit-index').value = index;
           document.getElementById('edit-name').value = itemToEdit.name || '';
-          document.getElementById('edit-price').value = itemToEdit.price || '';
+          const editPriceSmallInput = document.getElementById('edit-price-small');
+          const editPriceMediumInput = document.getElementById('edit-price-medium');
+          const editPriceLargeInput = document.getElementById('edit-price-large');
+          if (editPriceSmallInput) {
+            editPriceSmallInput.value = formatPriceValue(itemToEdit.price_small) || '';
+          }
+          if (editPriceMediumInput) {
+            editPriceMediumInput.value = formatPriceValue(itemToEdit.price_medium) || '';
+          }
+          if (editPriceLargeInput) {
+            editPriceLargeInput.value = formatPriceValue(itemToEdit.price_large) || '';
+          }
           populateCategoryDropdown(
             document.getElementById('edit-category'),
             currentCategories,

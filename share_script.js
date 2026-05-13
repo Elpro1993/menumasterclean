@@ -16,6 +16,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
   let currentLanguage = 'en';
   let currentProfileData = null; // Cache profile/theme data for rerenders
+  let currentCurrencies = [];
 
   const translations = {
     en: {
@@ -50,6 +51,42 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
   function getItemDisplayDescription(item) {
     return item?.description || t('noDescription');
+  }
+
+  function formatPriceValue(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const num = parseFloat(value);
+    if (isNaN(num)) return null;
+    return num % 1 === 0 ? `${num}` : num.toFixed(2);
+  }
+
+  function getCurrencySymbolForItem(item) {
+    const currency = currentCurrencies.find((c) => c.id === item?.currency_id);
+    return currency?.symbol || '$';
+  }
+
+  function buildItemPriceDisplay(item, currencySymbol = '$') {
+    const sizes = [
+      { label: 'Small', value: formatPriceValue(item?.price_small) },
+      { label: 'Medium', value: formatPriceValue(item?.price_medium) },
+      { label: 'Large', value: formatPriceValue(item?.price_large) },
+    ].filter((s) => s.value !== null);
+
+    if (sizes.length === 0) {
+      const legacyPrice = formatPriceValue(item?.price);
+      return legacyPrice ? `${currencySymbol}${legacyPrice}` : 'N/A';
+    }
+
+    if (sizes.length === 1) {
+      return `${currencySymbol}${sizes[0].value}`;
+    }
+
+    return sizes
+      .map(
+        (s) =>
+          `<span class="item-price-line">${s.label}: ${currencySymbol}${s.value}</span>`,
+      )
+      .join('');
   }
 
   function applyLanguageUi() {
@@ -222,6 +259,18 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     return data || [];
   }
 
+  async function getCurrencies() {
+    const { data, error } = await supabaseClient
+      .from('currencies')
+      .select('*')
+      .order('code', { ascending: true });
+    if (error) {
+      handleError(error, 'Failed to load currencies');
+      return [];
+    }
+    return data || [];
+  }
+
   // Fetch restaurant profile data (name, logo)
   async function getRestaurantProfile(userId) {
     if (!userId) {
@@ -272,13 +321,14 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     const itemDescriptionStyle = profileColors.item_description_color
       ? `style="color: ${profileColors.item_description_color};"`
       : '';
+    const currencySymbol = getCurrencySymbolForItem(item);
 
     card.innerHTML = `
             <img src="${imageUrl}" alt="${getItemDisplayName(item)}" class="item-image" onerror="this.onerror=null;this.src='placeholder.png';">
             <div class="item-content">
                 <h3 class="item-name" ${itemNameStyle}>${getItemDisplayName(item)}</h3>
                 <div class="item-header">
-                    <span class="item-price" ${itemPriceStyle}>${item.price ? '$' + parseFloat(item.price).toFixed(2) : 'N/A'}</span>
+                    <span class="item-price" ${itemPriceStyle}>${buildItemPriceDisplay(item, currencySymbol)}</span>
                 </div>
                 <p class="item-description" ${itemDescriptionStyle}>${getItemDisplayDescription(item)}</p>
                 <div class="expand-indicator">
@@ -410,9 +460,17 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
       categoryButton.className = 'category-btn';
       categoryButton.dataset.categoryKey = category.name;
       if (category.icon_enabled && category.icon_class) {
-        const icon = document.createElement('i');
-        icon.className = `fas ${category.icon_class}`;
-        categoryButton.prepend(icon);
+        if (category.icon_class.startsWith('category-icons/')) {
+          const icon = document.createElement('img');
+          icon.src = category.icon_class;
+          icon.alt = `${category.name} icon`;
+          icon.className = 'category-custom-icon';
+          categoryButton.prepend(icon);
+        } else {
+          const icon = document.createElement('i');
+          icon.className = `fas ${category.icon_class}`;
+          categoryButton.prepend(icon);
+        }
       }
       categoryButton.appendChild(
         document.createTextNode(getCategoryDisplayName(category)),
@@ -537,6 +595,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
 
     // Fetch data for the specific owner
     currentCategories = await getCategories(ownerUserId);
+    currentCurrencies = await getCurrencies();
     currentMenuItems = await getMenuItems(ownerUserId);
     console.log('Fetched categories and menu items:', {
       categories: currentCategories,
