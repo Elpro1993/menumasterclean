@@ -14,7 +14,7 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
   let currentCategories = []; // Holds the current categories fetched from DB
   let ownerUserId = null; // Holds the ID of the owner whose menu is being displayed
   let isMenuItemOrderIndexSupported = true; // Assume supported by default
-  let currentLanguage = 'ar';
+  let currentLanguage = 'en';
   let currentProfileData = null; // Cache profile/theme data for rerenders
 
   const translations = {
@@ -582,4 +582,5 @@ if (typeof supabase === 'undefined' || !supabase.createClient) {
     console.log('Share script DOMContentLoaded finished.');
   });
 }
+
 
